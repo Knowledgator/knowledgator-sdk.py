@@ -5,7 +5,7 @@ from typing import Any, Iterable, Mapping, Optional, Union, Iterator
 import asyncio, httpx, random, time, urllib.parse
 
 from ..utils import remove_none_from_dict, remove_omit_from_dict
-from ..configs import RetryPolicyConfig
+from ..configs import RetryPolicyConfigs
 
 class BaseHttpClient:
     def __init__(
@@ -15,13 +15,13 @@ class BaseHttpClient:
         base_url: str | None = None,
         base_headers: Mapping[str, str] | None = None,
         timeout: Union[int, float] = 5,
-        retry_policy: RetryPolicyConfig | None = None,
+        retry_policy: RetryPolicyConfigs | None = None,
     ):
         self._client = client
         self._base_url = base_url or ""
         self._base_headers = dict(base_headers or {})
         self._timeout = timeout
-        self._retry = retry_policy or RetryPolicyConfig()
+        self._retry = retry_policy or RetryPolicyConfigs()
 
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url

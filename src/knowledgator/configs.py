@@ -1,12 +1,16 @@
-from typing import Iterable, Mapping, Union, Dict
+from typing import Tuple, Optional, Union, Dict, Any
 from dataclasses import dataclass, field
+from pydantic import Field
 import random
 import os
+
+from .clients import HttpClient, AsyncHttpClient
+from .version import __version__
 
 SERVERS = {"main": "https://knowledgator.com"}
 
 @dataclass(slots=True)
-class RetryPolicyConfig:
+class RetryPolicyConfigs:
     max_tries: int = 3
     base_delay: float = 0.25
     max_delay: float = 10.0
@@ -33,9 +37,10 @@ def _default_servers() -> Dict[str, str]:
     return SERVERS
 
 @dataclass(slots=True)
-class ServersConfig:
+class ServersConfigs:
     base_server: str = "main"
     servers: Dict[str, str] = field(default_factory=_default_servers)
+    base_headers: Dict[str, str] = None
 
     def __post_init__(self) -> None:
         if self.base_server not in self.servers:
@@ -46,3 +51,25 @@ class ServersConfig:
     def url(self, name: str | None = None) -> str:
         """Return the URL by alias; if None uses `base_server`."""
         return self.servers[name or self.base_server]
+
+
+@dataclass
+class SDKConfigs:
+    client: Union[HttpClient, None]
+    client_supplied: bool
+    async_client: Union[AsyncHttpClient, None]
+    async_client_supplied: bool
+    debug_logger: Any #Logger
+    server: Union[str, None] = 'main'
+    server_config: Union[ServersConfigs, None]
+    language: str = "python"
+    sdk_version: str = __version__
+    retry_config: Optional[RetryPolicyConfigs] = Field(default_factory=lambda: None)
+    timeout_ms: Optional[int] = None
+
+    def get_server_details(self) -> Tuple[str, Dict[str, str]]:
+        if self.server_config is None:
+            raise ValueError("Server configuration is not set.")
+        server_url = self.server_config.url(self.server)
+        headers = self.server_config.base_headers or {}
+        return server_url, headers
