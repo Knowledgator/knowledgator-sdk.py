@@ -1,151 +1,151 @@
-from typing import Dict, List, Any, Optional, Union
-import httpx
-import urllib
-import asyncio
-import time
+from __future__ import annotations
+from dataclasses import dataclass
+from typing import Any, Iterable, Mapping, Optional, Union, Iterator
+
+import asyncio, httpx, random, time, urllib.parse
 
 from ..utils import remove_none_from_dict, remove_omit_from_dict
-from ..configs import HttpConfig
+from ..configs import RetryPolicyConfig
 
-def _should_retry(response: httpx.Response) -> bool:
-    retryable_400s = [429, 408, 409]
-    return response.status_code >= 500 or response.status_code in retryable_400s
-
-def set_retry_timeout(retries_happened: int) -> float:
-    timeout = 0
-    if retries_happened>=1:
-        timeout = min(HttpClient.initial_retry_delay_seconds*retries_happened**2, HttpClient.max_retry_delay_seconds)
-    return timeout if timeout>=0 else 0
-
-class AsyncHttpClient:
-    def __init__(   
-                    self, 
-                    *,
-                    httpx_client: httpx.Client = None,
-                    base_url: str = None,
-                    base_headers: Dict[str, str] = None,
-                    timeout: Union[int, float] = 5,
-                    ):
-        self.httpx_client = httpx_client 
-        self.base_url = base_url
-        self.base_headers = base_headers
-        self.timeout = timeout
-
-    async def request(
+class BaseHttpClient:
+    def __init__(
         self,
-        path: Optional[str] = None,
         *,
-        method: str,
-        base_url: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
-        json: Optional[Any] = None,
-        headers: Optional[Dict[str, Any]] = None,
-        retries: int = 3,
-        timeout: Optional[Union[int, float]] = None,
-        omit: Optional[Any] = None,
-    ) -> httpx.Response:
-        base_url = base_url if base_url is not None else self.base_url
-        
-        timeout = timeout if timeout is not None else self.timeout
+        client: httpx.Client | httpx.AsyncClient | None = None,
+        base_url: str | None = None,
+        base_headers: Mapping[str, str] | None = None,
+        timeout: Union[int, float] = 5,
+        retry_policy: RetryPolicyConfig | None = None,
+    ):
+        self._client = client
+        self._base_url = base_url or ""
+        self._base_headers = dict(base_headers or {})
+        self._timeout = timeout
+        self._retry = retry_policy or RetryPolicyConfig()
 
-        url = urllib.parse.urljoin(base_url, path) if path else base_url
+    def _url(self, path: str | None) -> str:
+        return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
 
-        headers = {
-            **self.base_headers,
-            **remove_none_from_dict(headers or {}),
-        }
+    def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
+        if extra is None:
+            return self._base_headers
+        return {**self._base_headers, **remove_none_from_dict(extra)}
 
-        params = remove_none_from_dict(params or {})
-        params = remove_omit_from_dict(params, omit)
+class HttpClient(BaseHttpClient):
+    def __enter__(self):
+        if self._client is None:
+            self._client = httpx.Client(timeout=self._timeout)
+        return self
 
-        response = await self.httpx_client.request(
-            method=method,
-            url=url,
-            params=params,
-            json=json,
-            headers=headers,
-            timeout=timeout,
-        )
-
-        retries = max(HttpClient.max_retries, retries)
-        retries_happened = HttpClient.max_retries - retries
-        if _should_retry(response) and retries > 0:
-            await asyncio.sleep(set_retry_timeout(retries_happened))
-            return await self.request(
-                path=path,
-                method=method,
-                base_url=base_url,
-                params=params,
-                json=json,
-                headers=headers,
-                retries=retries - 1,
-                timeout=timeout,
-                omit=omit,
-            )
-
-
-class HttpClient:
-    def __init__(   
-                    self, 
-                    *,
-                    httpx_client: httpx.Client = None,
-                    base_url: str = None,
-                    base_headers: Dict[str, str] = None,
-                    timeout: Union[int, float] = 5,
-                    ):
-        self.httpx_client = httpx_client 
-        self.base_url = base_url
-        self.base_headers = base_headers
-        self.timeout = timeout
+    def __exit__(self, *exc):
+        self._client.close()
 
     def request(
         self,
-        path: Optional[str] = None,
-        *,
         method: str,
-        base_url: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
+        path: str | None = None,
+        *,
+        params: Optional[dict[str, Any]] = None,
+        data: Optional[Any] = None,
         json: Optional[Any] = None,
-        headers: Optional[Dict[str, Any]] = None,
-        retries: int = 3,
+        content: Optional[Union[bytes, Iterator[bytes]]] = None,
+        files: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        follow_redirects: bool | None = None,
         timeout: Optional[Union[int, float]] = None,
-        omit: Optional[Any] = None,
+        retries: Optional[int] = None,
+        omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
-        base_url = base_url if base_url is not None else self.base_url
-        
-        timeout = timeout if timeout is not None else self.timeout
 
-        url = urllib.parse.urljoin(base_url, path) if path else base_url
+        url = self._url(path)
+        req_headers = self._headers(headers)
+        if params is not None:
+            req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
+        else:
+            req_params = {}
+        max_tries   = retries if retries is not None else self._retry.max_tries
 
-        headers = {
-            **self.base_headers,
-            **remove_none_from_dict(headers or {}),
-        }
-
-        params = remove_none_from_dict(params or {})
-        params = remove_omit_from_dict(params, omit)
-
-        response = self.httpx_client.request(
-            method=method,
-            url=url,
-            params=params,
-            json=json,
-            headers=headers,
-            timeout=timeout,
-        )
-
-        retries = max(HttpClient.max_retries, retries)
-        retries_happened = HttpClient.max_retries - retries
-        if _should_retry(response) and retries > 0:
-            time.sleep(set_retry_timeout(retries_happened))
-            return self.request(
-                path=path,
+        attempt = 0
+        while True:
+            resp = self._client.request(
                 method=method,
-                base_url=base_url,
-                params=params,
+                url=url,
+                params=req_params,
+                data=data,
                 json=json,
-                headers=headers,
-                retries=retries - 1,
-                timeout=timeout,
-                omit=omit,
+                content=content,
+                files=files,
+                headers=req_headers,
+                timeout=timeout or self._timeout,
+                follow_redirects=follow_redirects,
             )
+            if attempt >= max_tries - 1 or not self._retry.should_retry(resp.status_code):
+                return resp
+
+            time.sleep(self._retry.backoff(attempt))
+            attempt += 1
+
+    # same convenience wrappers as async version
+    def get(self, path=None, **kw):   return self.request("GET",  path, **kw)
+    def post(self, path=None, **kw):  return self.request("POST", path, **kw)
+    def put(self, path=None, **kw):   return self.request("PUT",  path, **kw)
+    def delete(self, path=None, **kw):return self.request("DELETE",path, **kw)
+
+class AsyncHttpClient(BaseHttpClient):
+    async def __aenter__(self):
+        if self._client is None:
+            self._client = httpx.AsyncClient(timeout=self._timeout)
+        return self
+
+    async def __aexit__(self, *exc):
+        await self._client.aclose()
+
+    async def request(
+        self,
+        method: str,
+        path: str | None = None,
+        *,
+        params: Optional[dict[str, Any]] = None,
+        data: Optional[Any] = None,
+        json: Optional[Any] = None,
+        content: Optional[Union[bytes, Iterator[bytes]]] = None,
+        files: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        follow_redirects: bool | None = None,
+        timeout: Optional[Union[int, float]] = None,
+        retries: Optional[int] = None,
+        omit: Optional[Iterable[str]] = None,
+    ) -> httpx.Response:
+
+        url = self._url(path)
+        req_headers = self._headers(headers)
+        if params is not None:
+            req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
+        else:
+            req_params = {}        
+        max_tries   = retries if retries is not None else self._retry.max_tries
+
+        attempt = 0
+        while True:
+            resp = await self._client.request(
+                method=method,
+                url=url,
+                params=req_params,
+                data=data,
+                json=json,
+                content=content,
+                files=files,
+                headers=req_headers,
+                timeout=timeout or self._timeout,
+                follow_redirects=follow_redirects,
+            )
+            if attempt >= max_tries - 1 or not self._retry.should_retry(resp.status_code):
+                return resp         # success or exhausted retries
+
+            await asyncio.sleep(self._retry.backoff(attempt))
+            attempt += 1
+
+    async def get(self, path=None, **kw):  return await self.request("GET",  path, **kw)
+    async def post(self, path=None, **kw): return await self.request("POST", path, **kw)
+    async def put(self, path=None, **kw):  return await self.request("PUT",  path, **kw)
+    async def delete(self, path=None, **kw):return await self.request("DELETE",path, **kw)

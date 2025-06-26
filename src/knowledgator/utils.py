@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 def remove_none_from_dict(dict: Dict[Any, Any]):
     new_dict = {}

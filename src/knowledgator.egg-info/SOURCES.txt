@@ -1,0 +1,12 @@
+pyproject.toml
+src/knowledgator/__init__.py
+src/knowledgator/configs.py
+src/knowledgator/sdk.py
+src/knowledgator/utils.py
+src/knowledgator/version.py
+src/knowledgator.egg-info/PKG-INFO
+src/knowledgator.egg-info/SOURCES.txt
+src/knowledgator.egg-info/dependency_links.txt
+src/knowledgator.egg-info/top_level.txt
+src/knowledgator/clients/__init__.py
+src/knowledgator/clients/http_client.py
