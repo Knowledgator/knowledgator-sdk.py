@@ -9,7 +9,6 @@ from ..configs import (
     RetryPolicyConfigs,
 )
 
-
 class BaseAPI:
 
     def __init__(self, configs: SDKConfigs) -> None:
