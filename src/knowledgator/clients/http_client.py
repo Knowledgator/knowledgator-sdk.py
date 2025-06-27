@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, Optional, Union, Iterator
 
 import asyncio, httpx, random, time, urllib.parse
 
-from ..utils import remove_none_from_dict, remove_omit_from_dict
+from ..utils.dictionaries_op import remove_none_from_dict, remove_omit_from_dict
 from ..configs import RetryPolicyConfigs
 
 class BaseHttpClient:
