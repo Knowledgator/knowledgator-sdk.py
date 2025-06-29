@@ -8,3 +8,5 @@ class NotFound(ClientError):               code = 404
 class Conflict(ClientError):               code = 409
 class UnprocessableEntity(ClientError):    code = 422
 class RateLimitExceeded(ClientError):      code = 429
+class InvalidToken(ClientError):           code = 498
+class ClientClosedRequest(ClientError):    code = 499

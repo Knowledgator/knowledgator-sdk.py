@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, constr, confloat
 
 
@@ -25,3 +25,30 @@ class ComprehendRequest(BaseModel):
     )
     examples: Optional[List[ClassificationExample]] = None   # few-shot hints
 
+
+class ExtractBaseRequest(BaseModel):
+    text: str
+    labels: List[str]
+    threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(
+        default=0.5, description="Score cut-off"
+    )
+    prompt: Optional[str] = None
+
+
+
+class ExtractRelationsRequest(BaseModel):
+    text: str
+    relations: List[str]
+    entities: List[str]
+    threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(
+        default=0.5, description="Score cut-off"
+    )
+    rules: Optional[List[Dict[str, Any]]] = None
+    prompt: Optional[str] = None
+
+class ExtractSummaryRequest(BaseModel):
+    text: str
+    threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(
+        default=0.5, description="Score cut-off"
+    )
+    prompt: Optional[str] = None
