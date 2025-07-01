@@ -21,10 +21,16 @@ class BaseAPI:
     METHOD: str
     CONTENT_TYPE: str
 
-    def __init__(self, configs: SDKConfigs, server_configs: RetryPolicyConfigs = None, path: Optional[str] = None) -> None:
+    def __init__(self, configs: SDKConfigs, 
+                        server_configs: ServersConfigs = None, 
+                        path: Optional[str] = None, 
+                        endpoints_config: Optional[EndpointsConfig] = None) -> None:
         if path is not None:
             self.PATH = path
 
+        if endpoints_config is not None:
+            self.ENDPOINTS_CONFIG = endpoints_config
+            
         self.configs = configs
 
         if server_configs is not None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional, Any, Dict
 import os
 
-from .apis import ComprehendAPI, ExtractAPI
+from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig
 from .configs import (
     SDKConfigs,
     ServersConfigs,
@@ -35,10 +35,20 @@ class BaseKnowledgator:
         else:
             self.retry_config = retry_config
 
-    def _init_apis(self) -> None:
-        """Initialize API clients after configs are set."""
-        self.comprehend = ComprehendAPI(self.configs)
-        self.extract = ExtractAPI(self.configs)
+    def _init_apis(
+        self,
+        *,
+        comprehend_cfg: SDKConfigs,
+        extract_cfg: SDKConfigs,
+        comprehend_endpoints: Optional[EndpointsConfig] = None,
+        extract_endpoints: Optional[EndpointsConfig] = None,
+    ) -> None:
+        """Instantiate low‑level API helpers with custom endpoint configs."""
+        self.comprehend = ComprehendAPI(
+            comprehend_cfg, endpoints_config=comprehend_endpoints
+        )
+        self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
+
 
     def close(self) -> None:
         """Close the underlying synchronous client."""
@@ -89,6 +99,8 @@ class Knowledgator(BaseKnowledgator):
         async_client: Optional[Any] = None,
         server_url: Optional[str] = None,
         server_base_headers: Optional[Dict[str, str]] = None,
+        comprehend_endpoints: Optional[EndpointsConfig] = None,
+        extract_endpoints: Optional[EndpointsConfig] = None,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
@@ -131,111 +143,89 @@ class Knowledgator(BaseKnowledgator):
                 timeout_ms=timeout_ms,
             )
 
-        # Initialize API clients
-        self._init_apis()
+        self._init_apis(
+            comprehend_cfg=self.configs,
+            extract_cfg=self.configs,
+            comprehend_endpoints=comprehend_endpoints,
+            extract_endpoints=extract_endpoints,
+        )
 
     def _get_base_headers(
         self, 
-        servers_cfg: ServersConfigs, 
+        servers_configs: ServersConfigs, 
         api_key: Optional[str]
     ) -> Dict[str, str]:
         """Generate base headers with proper API key."""
         base_headers: Dict[str, str] = {}
         if api_key:
             base_headers["KnowledgatorAPI-Key"] = api_key
-        if servers_cfg.base_headers:
-            base_headers.update(servers_cfg.base_headers)
+        if servers_configs.base_headers:
+            base_headers.update(servers_configs.base_headers)
         return base_headers
 
 
 class KnowledgatorRapidAPI(BaseKnowledgator):
-    """
-    Knowledgator implementation for RapidAPI with separate hosts for each API.
-    
-    >>> rapid_kg = KnowledgatorRapidAPI(
-    >>>     api_key="your-rapidapi-key",
-    >>>     comprehend_host="comprehend-it.p.rapidapi.com",
-    >>>     extract_host="extract-it.p.rapidapi.com"
-    >>> )
-    """
-    COMPREHEND_SERVER_ALIAS = "comprehend-rapidapi"
-    EXTRACT_SERVER_ALIAS = "extract-rapidapi"
+    """RapidAPI variant – separate hosts / headers for each low‑level API."""
+
+    COMPREHEND_ALIAS = "comprehend-rapidapi"
+    EXTRACT_ALIAS = "extract-rapidapi"
 
     def __init__(
         self,
         *,
         api_key: str,
+        configs: Optional[SDKConfigs] = None,
         comprehend_host: Optional[str] = None,
         extract_host: Optional[str] = None,
+        comprehend_endpoints: Optional[EndpointsConfig] = None,
+        extract_endpoints: Optional[EndpointsConfig] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
-        max_tries: int = 3,
-        base_delay: float = 0.25,
-        max_delay: float = 10.0,
-        retry_config: Optional[RetryPolicyConfigs] = None,
         timeout_ms: Optional[int] = None,
         debug_logger: Any = None,
-    ):
-        super().__init__(
-            max_tries=max_tries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-            retry_config=retry_config
-        )
+        **retry_kwargs,
+    ) -> None:
+        super().__init__(**retry_kwargs)
 
-        servers_cfg = ServersConfigs()
+        servers_configs = ServersConfigs()
 
-        if comprehend_host is None:
-            comprehend_host = SERVERS[self.COMPREHEND_SERVER_ALIAS]
-
-        servers_cfg.servers[self.COMPREHEND_SERVER_ALIAS] = f"https://{comprehend_host}"
-        comprehend_headers = {
+        comprehend_host = comprehend_host or SERVERS[self.COMPREHEND_ALIAS]
+        servers_configs.servers[self.COMPREHEND_ALIAS] = f"https://{comprehend_host}"
+        servers_configs.base_headers[self.COMPREHEND_ALIAS] = {  # type: ignore[attr-defined]
             "x-rapidapi-key": api_key,
             "x-rapidapi-host": comprehend_host,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
-        
-        if extract_host is None:
-            extract_host = SERVERS[self.COMPREHEND_SERVER_ALIAS]
 
-        servers_cfg.servers[self.EXTRACT_SERVER_ALIAS] = f"https://{extract_host}"
-        extract_headers = {
+        extract_host = extract_host or SERVERS[self.EXTRACT_ALIAS]
+        servers_configs.servers[self.EXTRACT_ALIAS] = f"https://{extract_host}"
+        servers_configs.base_headers[self.EXTRACT_ALIAS] = {  # type: ignore[attr-defined]
             "x-rapidapi-key": api_key,
             "x-rapidapi-host": extract_host,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
-        self.configs = SDKConfigs(
-            client=client,
-            client_supplied=client is not None,
-            async_client=async_client,
-            async_client_supplied=async_client is not None,
-            debug_logger=debug_logger,
-            server=self.COMPREHEND_SERVER_ALIAS,  # Default
-            server_config=servers_cfg,
-            retry_config=self.retry_config,
-            timeout_ms=timeout_ms,
-        )
+        if configs is None:
+            common_configs = SDKConfigs(
+                client=client,
+                client_supplied=client is not None,
+                async_client=async_client,
+                async_client_supplied=async_client is not None,
+                debug_logger=debug_logger,
+                server=self.COMPREHEND_ALIAS,  # default – doesn't really matter
+                server_config=servers_configs,
+                retry_config=self.retry_config,
+                timeout_ms=timeout_ms,
+            )
+        else:
+            common_configs = configs
 
-        self._init_apis(comprehend_headers, extract_headers)
+        comprehend_cfg = common_configs.copy(update={"server": self.COMPREHEND_ALIAS})
+        extract_cfg = common_configs.copy(update={"server": self.EXTRACT_ALIAS})
 
-    def _init_apis(
-        self, 
-        comprehend_headers: Dict[str, str], 
-        extract_headers: Dict[str, str]
-    ) -> None:
-        """Initialize API clients with custom server configurations."""
-        comprehend_config = self.configs.copy(
-            update={"server": self.COMPREHEND_SERVER_ALIAS}
+        self._init_apis(
+            comprehend_cfg=comprehend_cfg,
+            extract_cfg=extract_cfg,
+            comprehend_endpoints=comprehend_endpoints,
+            extract_endpoints=extract_endpoints,
         )
-        merged_comprehend_headers = {**(comprehend_config.server_config.base_headers or {}), **comprehend_headers}
-        comprehend_config.server_config.base_headers = merged_comprehend_headers
-        
-        extract_config = self.configs.copy(
-            update={"server": self.EXTRACT_SERVER_ALIAS}
-        )
-        merged_extract_headers = {**(extract_config.server_config.base_headers or {}), **extract_headers}
-        extract_config.server_config.base_headers = merged_extract_headers
-        
-        self.comprehend = ComprehendAPI(comprehend_config, path = '/')
-        self.extract = ExtractAPI(extract_config, path = '/')
