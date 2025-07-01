@@ -1,3 +1,3 @@
 from .base import BaseAPI, EndpointsConfig
-from .comprehend import ComprehendAPI
-from .extract import ExtractAPI
+from .comprehend import ComprehendAPI, ComprehendEndpointsConfig
+from .extract import ExtractAPI, ExtractEndpointsConfig

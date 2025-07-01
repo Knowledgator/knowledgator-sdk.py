@@ -3,9 +3,9 @@ import httpx
 import pytest
 
 from knowledgator.clients.http_client import HttpClient, AsyncHttpClient   # ← change if needed
-from knowledgator.configs import RetryPolicyConfig, ServersConfig
+from knowledgator.configs import RetryPolicyConfigs, ServersConfigs
 
-BASE_URL = ServersConfig().servers["main"]
+BASE_URL = ServersConfigs().servers["main"]
 
 def ok_transport(json_payload: dict[str, str] | None = None) -> httpx.MockTransport:
     return httpx.MockTransport(lambda r: httpx.Response(200, json=json_payload or {"ok": True}))
@@ -29,7 +29,7 @@ def test_sync_retry_happens(monkeypatch):
 
     tr = httpx.MockTransport(handler)
 
-    rp = RetryPolicyConfig(max_tries=2, base_delay=0, jitter=False)
+    rp = RetryPolicyConfigs(max_tries=2, base_delay=0, jitter=False)
 
     monkeypatch.setattr("time.sleep", lambda *_: None)
 
@@ -60,7 +60,7 @@ async def test_async_retry_happens(monkeypatch):
         return httpx.Response(500) if calls == 1 else httpx.Response(200)
 
     tr = httpx.MockTransport(handler)
-    rp = RetryPolicyConfig(max_tries=2, base_delay=0, jitter=False)
+    rp = RetryPolicyConfigs(max_tries=2, base_delay=0, jitter=False)
 
     async def fake_sleep(_):
         return None
