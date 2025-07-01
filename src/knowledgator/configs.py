@@ -7,7 +7,10 @@ import os
 from .clients import HttpClient, AsyncHttpClient
 from .version import __version__
 
-SERVERS = {"main": "https://knowledgator.com"}
+SERVERS = {"main": "api.knowledgator.com/",
+           "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
+           "extract-it-rapidapi": "extract-it.p.rapidapi.com",
+           }
 
 @dataclass(slots=True)
 class RetryPolicyConfigs:
@@ -70,7 +73,7 @@ class SDKConfigs:
     def get_server_details(self) -> Tuple[str, Dict[str, str]]:
         if self.server_config is None:
             raise ValueError("Server configuration is not set.")
-        server_url = self.server_config.url(self.server)
+        server_url = f"https://{self.server_config.url(self.server)}"
         headers = self.server_config.base_headers or {}
         return server_url, headers
 

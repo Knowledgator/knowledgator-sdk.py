@@ -1,4 +1,5 @@
 from typing import Any, Mapping, MutableMapping, Optional
+from dataclasses import dataclass
 import urllib.parse
 import httpx
 import time
@@ -7,12 +8,27 @@ from ..clients import AsyncHttpClient, HttpClient
 from ..configs import (
     SDKConfigs,
     RetryPolicyConfigs,
+    ServersConfigs
 )
 
-class BaseAPI:
+@dataclass
+class EndpointsConfig:
+    path: str = "/"
 
-    def __init__(self, configs: SDKConfigs) -> None:
+
+class BaseAPI:
+    PATH: str
+    METHOD: str
+    CONTENT_TYPE: str
+
+    def __init__(self, configs: SDKConfigs, server_configs: RetryPolicyConfigs = None, path: Optional[str] = None) -> None:
+        if path is not None:
+            self.PATH = path
+
         self.configs = configs
+
+        if server_configs is not None:
+            self.configs.server_config = server_configs
 
         self._log = getattr(self.configs, "debug_logger", None)
         
@@ -97,7 +113,7 @@ class BaseAPI:
             final_headers.update(headers)
 
         if accept is not None:
-            final_headers["Accept"] = accept
+            final_headers["Content-Type"] = accept
         if user_agent is not None:
             final_headers["User-Agent"] = user_agent
 

@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Mapping, Any
 import httpx
 
-from .base import BaseAPI
+from .base import BaseAPI, EndpointsConfig
 from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ComprehendRequest
@@ -14,15 +14,19 @@ from ..exceptions.base import (
 )
 from pydantic import ValidationError as PydanticValidationError
 
+class ComprehendEndpointsConfig(EndpointsConfig):
+    main = "classify"
+
 class ComprehendAPI(BaseAPI):
     """
     ComprehendAPI - zero-shot classification API service,"""
 
-    PATH = '/comprehend_it/classify'
+    PATH = '/comprehend_it/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
-
-    def run(
+    ENDPOINTS_CONFIG = ComprehendEndpointsConfig()
+    
+    def it(
         self,
         text: str,
         labels: List[str],
@@ -40,9 +44,10 @@ class ComprehendAPI(BaseAPI):
             threshold=threshold,
             examples=examples,
         )
+        path = "{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
         request = self._make_request(
             method=self.METHOD,
-            path=self.PATH,
+            path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
@@ -87,7 +92,7 @@ class ComprehendAPI(BaseAPI):
             self._log.debug("ComprehendAPI: classified text successfully")
         return result_obj
 
-    async def run_async(
+    async def it_async(
         self,
         text: str,
         labels: List[str],
@@ -105,9 +110,10 @@ class ComprehendAPI(BaseAPI):
             threshold=threshold,
             examples=examples,
         )
+        path = "{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
         request = self._make_request(
             method=self.METHOD,
-            path=self.PATH,
+            path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),

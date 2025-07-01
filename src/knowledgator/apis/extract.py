@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Mapping, Any
 import httpx
 
-from .base import BaseAPI
+from .base import BaseAPI, EndpointsConfig
 from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ExtractBaseRequest, ExtractRelationsRequest, ExtractSummaryRequest
@@ -14,6 +14,11 @@ from ..exceptions.base import (
 )
 from pydantic import ValidationError as PydanticValidationError
 
+class ExtractEndpointsConfig(EndpointsConfig):
+    main = "general"
+    relations = "relation-extraction"
+    summary = "summarization"
+
 class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
@@ -21,8 +26,9 @@ class ExtractAPI(BaseAPI):
     PATH = '/extract_it/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
+    ENDPOINTS_CONFIG = ExtractEndpointsConfig()
 
-    def run(
+    def it(
         self,
         text: str,
         labels: List[str],
@@ -40,7 +46,7 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = "{}/general".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.main}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -88,7 +94,7 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: extracted information successfully")
         return result_obj
 
-    async def run_async(
+    async def it_async(
         self,
         text: str,
         labels: List[str],
@@ -106,7 +112,7 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = "{}/general".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.main}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -155,7 +161,7 @@ class ExtractAPI(BaseAPI):
         return result_obj
     
 
-    def extract_relations(
+    def relations(
         self,
         text: str,
         entities: List[str],
@@ -177,7 +183,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
             rules=rules,
         )
-        path = "{}/relation-extraction".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.relations}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -224,7 +230,7 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: extracted relations successfully")
         return result_obj
 
-    async def extract_relations(
+    async def relations_async(
         self,
         text: str,
         entities: List[str],
@@ -246,7 +252,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
             rules=rules,
         )
-        path = "{}/relation-extraction".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.relations}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -293,145 +299,7 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: extracted relations successfully")
         return result_obj
 
-    def extract_relations(
-        self,
-        text: str,
-        entities: List[str],
-        relations: List[str],
-        threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
-        rules: Optional[List[Dict[str, Any]]] = None,
-        url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
-        server_url: Optional[str] = None,
-        timeout_ms: Optional[int] = None,
-        http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        body = ExtractRelationsRequest(
-            text=text,
-            entities=entities,
-            relations=relations,
-            threshold=threshold,
-            prompt=prompt,
-            rules=rules,
-        )
-        path = "{}/relation-extraction".format(self.PATH)
-        request = self._make_request(
-            method=self.METHOD,
-            path=path,
-            url_override=server_url,
-            url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
-            accept=self.CONTENT_TYPE,
-            timeout_ms=timeout_ms,
-            user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
-        )
-
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
-        try:
-            response = self.send(request)
-        except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
-        except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
-
-        if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
-
-        if not 200 <= response.status_code < 300:
-            raise from_http_response(response)
-
-        try:
-            result_obj = ExtractRelationsResults.model_validate(response.json())
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
-
-        if self._log:
-            self._log.debug("ExtractAPI: extracted relations successfully")
-        return result_obj
-
-    async def extract_relations(
-        self,
-        text: str,
-        entities: List[str],
-        relations: List[str],
-        threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
-        rules: Optional[List[Dict[str, Any]]] = None,
-        url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
-        server_url: Optional[str] = None,
-        timeout_ms: Optional[int] = None,
-        http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        body = ExtractRelationsRequest(
-            text=text,
-            entities=entities,
-            relations=relations,
-            threshold=threshold,
-            prompt=prompt,
-            rules=rules,
-        )
-        path = "{}/relation-extraction".format(self.PATH)
-        request = self._make_request(
-            method=self.METHOD,
-            path=path,
-            url_override=server_url,
-            url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
-            accept=self.CONTENT_TYPE,
-            timeout_ms=timeout_ms,
-            user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
-        )
-
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
-        try:
-            response = await self.send(request)
-        except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
-        except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
-
-        if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
-
-        if not 200 <= response.status_code < 300:
-            raise from_http_response(response)
-
-        try:
-            result_obj = ExtractRelationsResults.model_validate(response.json())
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
-
-        if self._log:
-            self._log.debug("ExtractAPI: extracted relations successfully")
-        return result_obj
-
-    def extract_summary(
+    def summary(
         self,
         text: str,
         threshold: Optional[float] = None,
@@ -448,7 +316,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
 
-        path = "{}/summarization".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.summary}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -495,7 +363,7 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: extracted summary successfully")
         return result_obj
     
-    async def extract_summary(
+    async def summary_async(
         self,
         text: str,
         threshold: Optional[float] = None,
@@ -512,7 +380,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
 
-        path = "{}/summarization".format(self.PATH)
+        path = "{}/{self.ENDPOINTS_CONFIG.summary}".format(self.PATH)
         request = self._make_request(
             method=self.METHOD,
             path=path,
