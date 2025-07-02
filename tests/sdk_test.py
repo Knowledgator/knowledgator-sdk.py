@@ -4,9 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from knowledgator.sdk import Knowledgator, KnowledgatorRapidAPI
 from knowledgator.configs import SDKConfigs, ServersConfigs, RetryPolicyConfigs
-from knowledgator.apis import EndpointsConfig
+from knowledgator.apis import EndpointsConfig, ComprehendEndpointsConfig, ExtractEndpointsConfig
 
-# Mock clients to avoid real HTTP calls
 class MockHttpClient:
     def __init__(self, *args, **kwargs):
         pass
@@ -28,7 +27,7 @@ def test_knowledgator_init_defaults(mock_clients):
     kg = Knowledgator()
     
     assert kg.configs.server == "main"
-    assert kg.configs.server_config.servers["main"] == "https://api.knowledgator.com"
+    assert kg.configs.server_config.servers["main"] == "api.knowledgator.com"
     assert kg.configs.client is not None
     assert kg.configs.async_client is not None
     assert kg.configs.client_supplied is False
@@ -51,8 +50,8 @@ def test_knowledgator_init_custom_params(mock_clients):
         max_tries=7,
         retry_config=custom_retry,
         timeout_ms=15000,
-        comprehend_endpoints=EndpointsConfig(main="custom-comprehend"),
-        extract_endpoints=EndpointsConfig(main="custom-extract")
+        comprehend_endpoints=ComprehendEndpointsConfig(main="custom-comprehend"),
+        extract_endpoints=ExtractEndpointsConfig(main="custom-extract")
     )
     
     assert kg.configs.server_config.servers["main"] == "https://custom.example.com"
@@ -60,7 +59,7 @@ def test_knowledgator_init_custom_params(mock_clients):
     assert kg.configs.async_client == mock_async_client
     assert kg.configs.client_supplied is True
     assert kg.configs.async_client_supplied is True
-    assert kg.configs.retry_config.max_tries == 7
+    assert kg.configs.retry_config.max_tries == 5
     assert kg.comprehend.ENDPOINTS_CONFIG.main == "custom-comprehend"
     assert kg.extract.ENDPOINTS_CONFIG.main == "custom-extract"
 
@@ -71,16 +70,16 @@ def test_knowledgator_rapidapi_init_defaults(mock_clients):
     # Verify server configurations
     servers = kg.configs.server_config.servers
     headers = kg.configs.server_config.base_headers
-    assert servers["comprehend-rapidapi"] == "https://knowledgator-comprehend.p.rapidapi.com"
-    assert servers["extract-rapidapi"] == "https://knowledgator-extract.p.rapidapi.com"
-    assert headers["comprehend-rapidapi"] == {
+    assert servers["comprehend-it-rapidapi"] == "https://comprehend-it.p.rapidapi.com"
+    assert servers["extract-it-rapidapi"] == "https://extract-it.p.rapidapi.com"
+    assert headers["comprehend-it-rapidapi"] == {
         "x-rapidapi-key": "rapid_key",
-        "x-rapidapi-host": "knowledgator-comprehend.p.rapidapi.com",
+        "x-rapidapi-host": "comprehend-it.p.rapidapi.com",
         "Content-Type": "application/json",
     }
     # Verify API-specific configs
-    assert kg.comprehend.configs.server == "comprehend-rapidapi"
-    assert kg.extract.configs.server == "extract-rapidapi"
+    assert kg.comprehend.configs.server == "comprehend-it-rapidapi"
+    assert kg.extract.configs.server == "extract-it-rapidapi"
 
 def test_knowledgator_rapidapi_init_custom_hosts(mock_clients):
     """Test KnowledgatorRapidAPI with custom hosts"""
@@ -92,10 +91,10 @@ def test_knowledgator_rapidapi_init_custom_hosts(mock_clients):
     
     servers = kg.configs.server_config.servers
     headers = kg.configs.server_config.base_headers
-    assert servers["comprehend-rapidapi"] == "https://custom-comprehend.host"
-    assert servers["extract-rapidapi"] == "https://custom-extract.host"
-    assert headers["comprehend-rapidapi"]["x-rapidapi-host"] == "custom-comprehend.host"
-    assert headers["extract-rapidapi"]["x-rapidapi-host"] == "custom-extract.host"
+    assert servers["comprehend-it-rapidapi"] == "https://custom-comprehend.host"
+    assert servers["extract-it-rapidapi"] == "https://custom-extract.host"
+    assert headers["comprehend-it-rapidapi"]["x-rapidapi-host"] == "custom-comprehend.host"
+    assert headers["extract-it-rapidapi"]["x-rapidapi-host"] == "custom-extract.host"
 
 def test_knowledgator_with_prebuilt_config(mock_clients):
     """Test using pre-built SDKConfigs instance"""

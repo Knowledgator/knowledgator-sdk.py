@@ -55,7 +55,7 @@ class BaseKnowledgator:
         if (
             self.configs.client
             and not self.configs.client_supplied
-            and not self.configs.client.is_closed
+            and not getattr(self.configs.client, "is_closed", False)
         ):
             self.configs.client.close()
 
@@ -64,7 +64,7 @@ class BaseKnowledgator:
         if (
             self.configs.async_client
             and not self.configs.async_client_supplied
-            and not self.configs.async_client.is_closed
+            and not getattr(self.configs.async_client, "is_closed", False)
         ):
             await self.configs.async_client.aclose()
 
@@ -121,16 +121,18 @@ class Knowledgator(BaseKnowledgator):
         if configs is not None:
             self.configs = configs
         else:
-            servers_cfg = ServersConfigs()
+            servers_configs = ServersConfigs()
             server_alias = self.server_alias
 
             if server_url is not None:
-                servers_cfg.servers[server_alias] = server_url
+                servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(servers_cfg, api_key)
+            base_headers = self._get_base_headers(servers_configs, api_key)
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
+            servers_configs.base_headers[server_alias] = base_headers
+            
             self.configs = SDKConfigs(
                 client=client,
                 client_supplied=client is not None,
@@ -138,7 +140,7 @@ class Knowledgator(BaseKnowledgator):
                 async_client_supplied=async_client is not None,
                 debug_logger=debug_logger,
                 server=server_alias,
-                server_config=servers_cfg,
+                server_config=servers_configs,
                 retry_config=self.retry_config,
                 timeout_ms=timeout_ms,
             )
@@ -167,8 +169,8 @@ class Knowledgator(BaseKnowledgator):
 class KnowledgatorRapidAPI(BaseKnowledgator):
     """RapidAPI variant – separate hosts / headers for each low‑level API."""
 
-    COMPREHEND_ALIAS = "comprehend-rapidapi"
-    EXTRACT_ALIAS = "extract-rapidapi"
+    COMPREHEND_ALIAS = "comprehend-it-rapidapi"
+    EXTRACT_ALIAS = "extract-it-rapidapi"
 
     def __init__(
         self,
@@ -220,8 +222,10 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
         else:
             common_configs = configs
 
-        comprehend_cfg = common_configs.copy(update={"server": self.COMPREHEND_ALIAS})
-        extract_cfg = common_configs.copy(update={"server": self.EXTRACT_ALIAS})
+        self.configs = common_configs
+
+        comprehend_cfg = common_configs.copy(server = self.COMPREHEND_ALIAS)
+        extract_cfg = common_configs.copy(server = self.EXTRACT_ALIAS)
 
         self._init_apis(
             comprehend_cfg=comprehend_cfg,

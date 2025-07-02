@@ -13,7 +13,8 @@ def ok_transport(json_payload: dict[str, str] | None = None) -> httpx.MockTransp
 
 def test_sync_basic_init_and_get():
     tr = ok_transport()
-    with HttpClient(client=httpx.Client(transport=tr), base_url=BASE_URL) as cli:
+    url = f"https://{BASE_URL}/"
+    with HttpClient(client=httpx.Client(transport=tr), base_url=url) as cli:
         resp = cli.get("/")
     assert resp.status_code == 200
     assert resp.json() == {"ok": True}
@@ -32,8 +33,8 @@ def test_sync_retry_happens(monkeypatch):
     rp = RetryPolicyConfigs(max_tries=2, base_delay=0, jitter=False)
 
     monkeypatch.setattr("time.sleep", lambda *_: None)
-
-    with HttpClient(client=httpx.Client(transport=tr), base_url=BASE_URL, retry_policy=rp) as cli:
+    url = f"https://{BASE_URL}/"
+    with HttpClient(client=httpx.Client(transport=tr), base_url=url, retry_policy=rp) as cli:
         resp = cli.get("/")
 
     assert calls == 2
@@ -44,7 +45,8 @@ def test_sync_retry_happens(monkeypatch):
 @pytest.mark.asyncio
 async def test_async_basic_init_and_get():
     tr = ok_transport({"hello": "world"})
-    async with AsyncHttpClient(client=httpx.AsyncClient(transport=tr), base_url=BASE_URL) as cli:
+    url = f"https://{BASE_URL}/"
+    async with AsyncHttpClient(client=httpx.AsyncClient(transport=tr), base_url=url) as cli:
         resp = await cli.get("/")
     assert resp.status_code == 200
     assert resp.json() == {"hello": "world"}
@@ -67,9 +69,10 @@ async def test_async_retry_happens(monkeypatch):
 
     monkeypatch.setattr(asyncio, "sleep", fake_sleep)
 
+    url = f"https://{BASE_URL}/"
     async with AsyncHttpClient(
         client=httpx.AsyncClient(transport=tr),
-        base_url=BASE_URL,
+        base_url=url,
         retry_policy=rp,
     ) as cli:
         resp = await cli.get("/")

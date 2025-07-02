@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Mapping, Any
+from dataclasses import dataclass
 import httpx
 
 from .base import BaseAPI, EndpointsConfig
@@ -6,16 +7,17 @@ from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults
-from ..exceptions.base import (
+from ..exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
-    from_http_response,
+    from_http_response
 )
 from pydantic import ValidationError as PydanticValidationError
 
+@dataclass
 class ComprehendEndpointsConfig(EndpointsConfig):
-    main = "classify"
+    main: str = "classify"
 
 class ComprehendAPI(BaseAPI):
     """

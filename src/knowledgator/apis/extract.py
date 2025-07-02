@@ -1,4 +1,5 @@
 from typing import List, Optional, Dict, Mapping, Any
+from dataclasses import dataclass
 import httpx
 
 from .base import BaseAPI, EndpointsConfig
@@ -6,7 +7,7 @@ from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ExtractBaseRequest, ExtractRelationsRequest, ExtractSummaryRequest
 from ..models.outputs import ExtractBaseResults, ExtractRelationsResults, ExtractSummaryResults
-from ..exceptions.base import (
+from ..exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
@@ -14,10 +15,11 @@ from ..exceptions.base import (
 )
 from pydantic import ValidationError as PydanticValidationError
 
+@dataclass
 class ExtractEndpointsConfig(EndpointsConfig):
-    main = "general"
-    relations = "relation-extraction"
-    summary = "summarization"
+    main: str = "general"
+    relations: str = "relation-extraction"
+    summary: str = "summarization"
 
 class ExtractAPI(BaseAPI):
     """

@@ -6,7 +6,7 @@ class Logger:
 
     _LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40}
 
-    def __init__(self, name: str = "SimpleLogger", level: str | int = "INFO",
+    def __init__(self, name: str = "SDK Logger", level: str | int = "INFO",
                  fmt: str = "{ts} {level:<7} {name}: {msg}") -> None:
         self.name = name
         self.level = self._coerce_level(level)

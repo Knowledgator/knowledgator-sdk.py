@@ -1,13 +1,13 @@
 from typing import Tuple, Optional, Union, Dict, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pydantic import Field
 import random
 import os
 
-from .clients import HttpClient, AsyncHttpClient
 from .version import __version__
+from .utils.logger import Logger
 
-SERVERS = {"main": "api.knowledgator.com/",
+SERVERS = {"main": "api.knowledgator.com",
            "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
            "extract-it-rapidapi": "extract-it.p.rapidapi.com",
            }
@@ -43,38 +43,53 @@ def _default_servers() -> Dict[str, str]:
 class ServersConfigs:
     base_server: str = "main"
     servers: Dict[str, str] = field(default_factory=_default_servers)
-    base_headers: Dict[str, str] = None
+    base_headers: Dict[str, Dict[str, str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.base_server not in self.servers:
             raise ValueError(
                 f"base_server '{self.base_server}' is not present in servers mapping"
             )
+        self.base_headers.setdefault(self.base_server, {})
 
-    def url(self, name: str | None = None) -> str:
-        """Return the URL by alias; if None uses `base_server`."""
-        return self.servers[name or self.base_server]
+    def url(self, name: Optional[str] = None) -> str:
+        """Return the URL by alias; if `name` is None, use `base_server`."""
+        return self.servers.get(name, None) or self.base_server
+
+    def headers(self, name: Optional[str] = None) -> Dict[str, str]:
+        """Return the header dict for a server alias (may be empty)."""
+        return self.base_headers.get(name or self.base_server, {})
 
 
-@dataclass
+@dataclass(slots=True)
 class SDKConfigs:
-    client: Union[HttpClient, None]
-    client_supplied: bool
-    async_client: Union[AsyncHttpClient, None]
-    async_client_supplied: bool
-    debug_logger: Any #Logger
-    server: Union[str, None] = 'main'
-    server_config: Union[ServersConfigs, None]
+    client: Any | None = None
+    client_supplied: bool = False
+    async_client: Any | None = None
+    async_client_supplied: bool = False
+
+    debug_logger: Any = field(default_factory=Logger)     
     language: str = "python"
     sdk_version: str = __version__
-    retry_config: Optional[RetryPolicyConfigs] = Field(default_factory=lambda: None)
-    timeout_ms: Optional[int] = None
 
+    server: str = "main"
+    server_config: "ServersConfigs" = field(default_factory=ServersConfigs)
+    retry_config: "RetryPolicyConfigs" = field(default_factory=RetryPolicyConfigs)
+    timeout_ms: Optional[int] = None                    
+
+    def copy(self, **overrides) -> "SDKConfigs":
+        """
+        Return a *shallow* copy of this SDKConfigs instance, with optional
+        field overrides::
+
+            new_cfg = cfg.copy(timeout_ms=5_000, server="comprehend-it-rapidapi")
+
+        Any keyword you supply will replace the corresponding attribute
+        on the new instance, leaving the original untouched.
+        """
+        return replace(self, **overrides)
+    
     def get_server_details(self) -> Tuple[str, Dict[str, str]]:
-        if self.server_config is None:
-            raise ValueError("Server configuration is not set.")
         server_url = f"https://{self.server_config.url(self.server)}"
         headers = self.server_config.base_headers or {}
         return server_url, headers
-
-    
