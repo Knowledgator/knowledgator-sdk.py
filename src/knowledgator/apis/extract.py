@@ -6,7 +6,13 @@ from .base import BaseAPI, EndpointsConfig
 from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ExtractBaseRequest, ExtractRelationsRequest, ExtractSummaryRequest
-from ..models.outputs import ExtractBaseResults, ExtractRelationsResults, ExtractSummaryResults
+from ..models.outputs import (
+    ExtractBaseResults,
+    ExtractRelationsResults,
+    ExtractSummaryResults,
+    EntityResponse,
+    RelationResponse,
+)
 from ..exceptions import (
     ServerError,
     TransportTimeout,
@@ -30,6 +36,103 @@ class ExtractAPI(BaseAPI):
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
 
+    SUCCESS_STATUS = "ok"
+    DEFAULT_THRESHOLD = 0.5
+
+    def _parse_entities(
+        self,
+        raw: dict[str, Any],
+        *,
+        text_fallback: str,
+        labels_fallback: List[str],
+        threshold_fallback: Optional[float],
+    ) -> ExtractBaseResults:
+        outputs = raw.get("outputs")
+        if not isinstance(outputs, list):
+            raise ServerError(
+                "Unexpected response shape (missing 'outputs')",
+                payload={"raw": raw},
+            )
+
+        try:
+            entities = [EntityResponse.model_validate(o) for o in outputs]
+        except PydanticValidationError as exc:
+            raise ServerError(
+                "Unexpected entity record format inside 'outputs'",
+                payload={"raw": raw},
+            ) from exc
+
+        return ExtractBaseResults(
+            results=entities,
+            input_text=raw.get("input_text", text_fallback),
+            labels=raw.get("labels", labels_fallback),
+            threshold=raw.get(
+                "threshold",
+                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+            ),
+            status=raw.get("status", self.SUCCESS_STATUS),
+        )
+
+    def _parse_relations(
+        self,
+        raw: dict[str, Any],
+        *,
+        text_fallback: str,
+        entities_fallback: List[str],
+        relations_fallback: List[str],
+        threshold_fallback: Optional[float],
+    ) -> ExtractRelationsResults:
+        outputs = raw.get("outputs")
+        if not isinstance(outputs, list):
+            raise ServerError(
+                "Unexpected response shape (missing 'outputs')",
+                payload={"raw": raw},
+            )
+
+        try:
+            relations = [RelationResponse.model_validate(o) for o in outputs]
+        except PydanticValidationError as exc:
+            raise ServerError(
+                "Unexpected relation record format inside 'outputs'",
+                payload={"raw": raw},
+            ) from exc
+
+        return ExtractRelationsResults(
+            results=relations,
+            input_text=raw.get("input_text", text_fallback),
+            entities=raw.get("entities", entities_fallback),
+            relations=raw.get("relations", relations_fallback),
+            threshold=raw.get(
+                "threshold",
+                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+            ),
+            status=raw.get("status", self.SUCCESS_STATUS),
+        )
+
+    def _parse_summary(
+        self,
+        raw: dict[str, Any],
+        *,
+        text_fallback: str,
+        threshold_fallback: Optional[float],
+    ) -> ExtractSummaryResults:
+        summary = raw.get("summary")
+        if not isinstance(summary, str):
+            raise ServerError(
+                "Unexpected response shape (missing 'summary')",
+                payload={"raw": raw},
+            )
+
+        return ExtractSummaryResults(
+            summary=summary,
+            input_text=raw.get("input_text", text_fallback),
+            threshold=raw.get(
+                "threshold",
+                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+            ),
+            status=raw.get("status", self.SUCCESS_STATUS),
+        )
+    
     def it(
         self,
         text: str,
@@ -63,7 +166,6 @@ class ExtractAPI(BaseAPI):
         if self._log:
             self._log.debug("ExtractAPI: %s %s", request.method, request.url)
 
-        # ── Transport layer ─────────────────────────────────────────────────────────
         try:
             response = self.send(request)
         except httpx.TimeoutException as exc:
@@ -80,7 +182,13 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractBaseResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_entities(
+                raw,
+                text_fallback=text,
+                labels_fallback=labels,
+                threshold_fallback=threshold,
+        )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -127,7 +235,6 @@ class ExtractAPI(BaseAPI):
         if self._log:
             self._log.debug("ExtractAPI: %s %s", request.method, request.url)
 
-        # ── Transport layer ─────────────────────────────────────────────────────────
         try:
             response = await self.send(request)
         except httpx.TimeoutException as exc:
@@ -144,7 +251,13 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractBaseResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_entities(
+                raw,
+                text_fallback=text,
+                labels_fallback=labels,
+                threshold_fallback=threshold,
+        )        
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -212,7 +325,14 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractRelationsResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_relations(
+                raw,
+                text_fallback=text,
+                entities_fallback=entities,
+                relations_fallback=relations,
+                threshold_fallback=threshold,
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -279,7 +399,14 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractRelationsResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_relations(
+                raw,
+                text_fallback=text,
+                entities_fallback=entities,
+                relations_fallback=relations,
+                threshold_fallback=threshold,
+            )        
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -341,7 +468,10 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractSummaryResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -403,7 +533,10 @@ class ExtractAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            result_obj = ExtractSummaryResults.model_validate(response.json())
+            raw = response.json()
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
