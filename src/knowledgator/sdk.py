@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional, Any, Dict
 import os
+import inspect
 
 from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig
 from .configs import (
@@ -49,24 +50,28 @@ class BaseKnowledgator:
         )
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
 
+    @staticmethod
+    def _is_closed(obj: Any) -> bool:
+        flag = getattr(obj, "is_closed", None)
+        return flag if isinstance(flag, bool) else False
 
     def close(self) -> None:
         """Close the underlying synchronous client."""
-        if (
-            self.configs.client
-            and not self.configs.client_supplied
-            and not getattr(self.configs.client, "is_closed", False)
-        ):
-            self.configs.client.close()
+        client = self.configs.client
+        if client and not self.configs.client_supplied and not self._is_closed(client):
+            client.close()
 
     async def aclose(self) -> None:
-        """Close the underlying async client."""
+        """Close the underlying async client (works with real clients *and* mocks)."""
+        client = self.configs.async_client
         if (
-            self.configs.async_client
+            client
             and not self.configs.async_client_supplied
-            and not getattr(self.configs.async_client, "is_closed", False)
+            and not self._is_closed(client)          # helper from previous fix
         ):
-            await self.configs.async_client.aclose()
+            result = client.aclose()                 # call it first
+            if inspect.isawaitable(result):          # only await real coroutines
+                await result
 
     async def __aenter__(self) -> "BaseKnowledgator":
         return self
