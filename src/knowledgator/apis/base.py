@@ -10,6 +10,7 @@ from ..configs import (
     RetryPolicyConfigs,
     ServersConfigs
 )
+from ..utils.dictionaries_op import remove_none_from_dict
 
 @dataclass
 class EndpointsConfig:
@@ -55,15 +56,14 @@ class BaseAPI:
         if self.configs.client is None:
             self.configs.client = HttpClient(
                 base_url=server_url,
-                base_headers=server_headers,
-                timeout=timeout_sec or 5,
+                timeout=timeout_sec or 10,
                 retry_policy=retry_cfg,
             )
 
             if self._log:
                 self._log.debug(
                     "BaseAPI: Created default HttpClient (timeout=%ss, retries=%s)",
-                    timeout_sec or 5,
+                    timeout_sec or 10,
                     retry_cfg.max_tries,
                 )
 
@@ -72,20 +72,28 @@ class BaseAPI:
         if self.configs.async_client is None:
             self.configs.async_client = AsyncHttpClient(
                 base_url=server_url,
-                base_headers=server_headers,
-                timeout=timeout_sec or 5,
+                timeout=timeout_sec or 10,
                 retry_policy=retry_cfg,
             )
 
             if self._log:
                 self._log.debug(
                     "BaseAPI: Created default AsyncHttpClient (timeout=%ss, retries=%s)",
-                    timeout_sec or 5,
+                    timeout_sec or 10,
                     retry_cfg.max_tries,
                 )
 
             self.configs.async_client_supplied = False
 
+    def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
+        if extra is None:
+            headers =  self.base_headers
+        headers = {**self.base_headers, **remove_none_from_dict(extra)}
+        raw_headers: list[tuple[bytes, bytes]] = [
+                (k.encode("ascii"), str(v).encode()) for k, v in headers.items()
+            ]
+        return raw_headers
+    
     def _make_request(  
         self,
         *,
@@ -114,15 +122,14 @@ class BaseAPI:
 
         url = urllib.parse.urljoin(base_url, raw_path.lstrip("/"))
 
-        final_headers: MutableMapping[str, str] = {}
-        if self.base_headers:
-            final_headers.update(self.base_headers)
+        extra_headers: MutableMapping[str, str] = {}
         if headers:
-            final_headers.update(headers)
+            extra_headers.update(headers)
         if accept is not None:
-            final_headers["Content-Type"] = accept
+            extra_headers["Content-Type"] = accept
         if user_agent is not None:
-            final_headers["User-Agent"] = user_agent
+            extra_headers["User-Agent"] = user_agent
+        final_headers = self._headers(extra_headers)
 
         extensions: dict[str, Any] = {}
         if timeout_ms is not None:
@@ -197,7 +204,7 @@ class BaseAPI:
             method=request.method,
             path=None, 
             params=request.url.params,
-            headers=dict(request.headers),
+            headers=request.headers,
             timeout=extensions.get("timeout"),
             **body_params  
         )

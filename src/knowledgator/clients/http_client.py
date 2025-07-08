@@ -13,27 +13,16 @@ class BaseHttpClient:
         *,
         client: httpx.Client | httpx.AsyncClient | None = None,
         base_url: str | None = None,
-        base_headers: Mapping[str, str] | None = None,
         timeout: Union[int, float] = 5,
         retry_policy: RetryPolicyConfigs | None = None,
     ):
         self._client = client
         self._base_url = base_url or ""
-        self._base_headers = dict(base_headers or {})
         self._timeout = timeout
         self._retry = retry_policy or RetryPolicyConfigs()
 
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
-
-    def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
-        if extra is None:
-            headers =  self._base_headers
-        headers = {**self._base_headers, **remove_none_from_dict(extra)}
-        raw_headers: list[tuple[bytes, bytes]] = [
-                (k.encode("ascii"), str(v).encode()) for k, v in headers.items() if k!='knowledgatorapi-key'
-            ]
-        return raw_headers
     
 class HttpClient(BaseHttpClient):
     def __init__(
@@ -41,14 +30,12 @@ class HttpClient(BaseHttpClient):
         *,
         client: httpx.Client | None = None,
         base_url: str | None = None,
-        base_headers: Mapping[str, str] | None = None,
         timeout: Union[int, float] = 5,
         retry_policy: RetryPolicyConfigs | None = None,
     ) -> None:
         super().__init__(
             client=client,
             base_url=base_url,
-            base_headers=base_headers,
             timeout=timeout,
             retry_policy=retry_policy,
         )
@@ -86,7 +73,6 @@ class HttpClient(BaseHttpClient):
         if url is None:
             url = self._url(path)
 
-        req_headers = self._headers(headers)
         if params is not None:
             req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
@@ -103,7 +89,7 @@ class HttpClient(BaseHttpClient):
                 json=json,
                 content=content,
                 files=files,
-                headers=req_headers,
+                headers=headers,
                 timeout=timeout or self._timeout,
                 follow_redirects=follow_redirects,
             )
@@ -125,14 +111,12 @@ class AsyncHttpClient(BaseHttpClient):
         *,
         client: httpx.AsyncClient | None = None,
         base_url: str | None = None,
-        base_headers: Mapping[str, str] | None = None,
         timeout: Union[int, float] = 5,
         retry_policy: RetryPolicyConfigs | None = None,
     ) -> None:
         super().__init__(
             client=client,
             base_url=base_url,
-            base_headers=base_headers,
             timeout=timeout,
             retry_policy=retry_policy,
         )
@@ -166,7 +150,6 @@ class AsyncHttpClient(BaseHttpClient):
     ) -> httpx.Response:
 
         url = self._url(path)
-        req_headers = self._headers(headers)
         if params is not None:
             req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
@@ -183,7 +166,7 @@ class AsyncHttpClient(BaseHttpClient):
                 json=json,
                 content=content,
                 files=files,
-                headers=req_headers,
+                headers=headers,
                 timeout=timeout or self._timeout,
                 follow_redirects=follow_redirects,
             )
