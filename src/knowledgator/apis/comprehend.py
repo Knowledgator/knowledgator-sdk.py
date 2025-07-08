@@ -30,6 +30,41 @@ class ComprehendAPI(BaseAPI):
     SUCCESS_STATUS = "ok"        
     DEFAULT_THRESHOLD = 0.5
 
+    def parse_labels(
+            self, 
+            raw: dict[str, Any],
+            *,
+            text_fallback: str,
+            labels_fallback: List[str],
+            threshold_fallback: Optional[float] = None
+        ):
+
+        outputs = raw.get("outputs")
+        if not isinstance(outputs, list):
+            raise ServerError(
+                "Unexpected response shape (missing 'outputs')",
+                status_code=200,
+                payload={"raw": raw},
+            )
+
+        try:
+            parsed_results = [ComprehendResponse.model_validate(o) for o in outputs]
+        except PydanticValidationError as exc:
+            raise ServerError(
+                "Unexpected record format inside 'outputs'",
+                status_code=200,
+                payload={"raw": raw},
+            ) from exc
+
+        result_obj = ComprehendResults(
+            results=parsed_results,
+            input_text=raw.get("input_text", text_fallback),
+            labels=raw.get("labels", labels_fallback),
+            threshold=raw.get("threshold", threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD),
+            status=raw.get("status", self.SUCCESS_STATUS),
+        )
+        return result_obj
+
     def it(
         self,
         text: str,
@@ -63,7 +98,6 @@ class ComprehendAPI(BaseAPI):
         if self._log:
             self._log.debug("ComprehendAPI: %s %s", request.method, request.url)
 
-        # ── Transport layer ─────────────────────────────────────────────────────────
         try:
             response = self.send(request)
         except httpx.TimeoutException as exc:
@@ -89,32 +123,18 @@ class ComprehendAPI(BaseAPI):
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        outputs = raw.get("outputs")
-        if not isinstance(outputs, list):
-            raise ServerError(
-                "Unexpected response shape (missing 'outputs')",
-                status_code=response.status_code,
-                payload={"raw": raw},
-                request_id=response.headers.get("x-request-id"),
-            )
-
         try:
-            parsed_results = [ComprehendResponse.model_validate(o) for o in outputs]
-        except PydanticValidationError as exc:
+            result_obj = self.parse_labels(raw, 
+                                           text_fallback = text, 
+                                           labels_fallback = labels, 
+                                           threshold_fallback = threshold)
+        except (ValueError, PydanticValidationError) as exc:
             raise ServerError(
-                "Unexpected record format inside 'outputs'",
+                "Malformed or unexpected response",
                 status_code=response.status_code,
                 payload={"raw": raw},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
-
-        result_obj = ComprehendResults(
-            results=parsed_results,
-            input_text=raw.get("input_text", text),
-            labels=raw.get("labels", labels),
-            threshold=raw.get("threshold", threshold if threshold is not None else self.DEFAULT_THRESHOLD),
-            status=raw.get("status", self.SUCCESS_STATUS),
-        )
 
         if self._log:
             self._log.debug("ComprehendAPI: classified text successfully")
@@ -177,35 +197,19 @@ class ComprehendAPI(BaseAPI):
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        outputs = raw.get("outputs")
-        if not isinstance(outputs, list):
-            raise ServerError(
-                "Unexpected response shape (missing 'outputs')",
-                status_code=response.status_code,
-                payload={"raw": raw},
-                request_id=response.headers.get("x-request-id"),
-            )
-
         try:
-            parsed_results = [ComprehendResponse.model_validate(o) for o in outputs]
-        except PydanticValidationError as exc:
+            result_obj = self.parse_labels(raw, 
+                                           text_fallback = text, 
+                                           labels_fallback = labels, 
+                                           threshold_fallback = threshold)      
+        except (ValueError, PydanticValidationError) as exc:
             raise ServerError(
-                "Unexpected record format inside 'outputs'",
+                "Malformed or unexpected response",
                 status_code=response.status_code,
                 payload={"raw": raw},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        result_obj = ComprehendResults(
-            results=parsed_results,
-            input_text=raw.get("input_text", text),
-            labels=raw.get("labels", labels),
-            threshold=raw.get(
-                "threshold",
-                threshold if threshold is not None else self.DEFAULT_THRESHOLD,
-            ),
-            status=raw.get("status", self.SUCCESS_STATUS),
-        )
 
         if self._log:
             self._log.debug("ComprehendAPI: classified text successfully")
