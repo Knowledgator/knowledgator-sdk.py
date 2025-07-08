@@ -132,7 +132,7 @@ class Knowledgator(BaseKnowledgator):
             if server_url is not None:
                 servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(servers_configs, api_key)
+            base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
@@ -159,15 +159,16 @@ class Knowledgator(BaseKnowledgator):
 
     def _get_base_headers(
         self, 
-        servers_configs: ServersConfigs, 
-        api_key: Optional[str]
+        servers_configs: ServersConfigs,
+        server_alias: Optional[str] = None,
+        api_key: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate base headers with proper API key."""
         base_headers: Dict[str, str] = {}
         if api_key:
             base_headers["KnowledgatorAPI-Key"] = api_key
         if servers_configs.base_headers:
-            base_headers.update(servers_configs.base_headers)
+            base_headers.update(servers_configs.base_headers.get(server_alias, {}))
         return base_headers
 
 

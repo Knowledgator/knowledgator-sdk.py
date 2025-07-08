@@ -28,10 +28,35 @@ class BaseHttpClient:
 
     def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
         if extra is None:
-            return self._base_headers
-        return {**self._base_headers, **remove_none_from_dict(extra)}
-
+            headers =  self._base_headers
+        headers = {**self._base_headers, **remove_none_from_dict(extra)}
+        raw_headers: list[tuple[bytes, bytes]] = [
+                (k.encode("ascii"), str(v).encode()) for k, v in headers.items() if k!='knowledgatorapi-key'
+            ]
+        return raw_headers
+    
 class HttpClient(BaseHttpClient):
+    def __init__(
+        self,
+        *,
+        client: httpx.Client | None = None,
+        base_url: str | None = None,
+        base_headers: Mapping[str, str] | None = None,
+        timeout: Union[int, float] = 5,
+        retry_policy: RetryPolicyConfigs | None = None,
+    ) -> None:
+        super().__init__(
+            client=client,
+            base_url=base_url,
+            base_headers=base_headers,
+            timeout=timeout,
+            retry_policy=retry_policy,
+        )
+
+        if self._client is None:
+            self._client = httpx.Client(timeout=self._timeout)
+
+
     def __enter__(self):
         if self._client is None:
             self._client = httpx.Client(timeout=self._timeout)
@@ -42,7 +67,8 @@ class HttpClient(BaseHttpClient):
 
     def request(
         self,
-        method: str,
+        url: str | None = None,
+        method: str = "POST",
         path: str | None = None,
         *,
         params: Optional[dict[str, Any]] = None,
@@ -57,7 +83,9 @@ class HttpClient(BaseHttpClient):
         omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
 
-        url = self._url(path)
+        if url is None:
+            url = self._url(path)
+
         req_headers = self._headers(headers)
         if params is not None:
             req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
@@ -92,6 +120,26 @@ class HttpClient(BaseHttpClient):
     def delete(self, path=None, **kw):return self.request("DELETE",path, **kw)
 
 class AsyncHttpClient(BaseHttpClient):
+    def __init__(
+        self,
+        *,
+        client: httpx.AsyncClient | None = None,
+        base_url: str | None = None,
+        base_headers: Mapping[str, str] | None = None,
+        timeout: Union[int, float] = 5,
+        retry_policy: RetryPolicyConfigs | None = None,
+    ) -> None:
+        super().__init__(
+            client=client,
+            base_url=base_url,
+            base_headers=base_headers,
+            timeout=timeout,
+            retry_policy=retry_policy,
+        )
+
+        if self._client is None:
+            self._client = httpx.AsyncClient(timeout=self._timeout)
+
     async def __aenter__(self):
         if self._client is None:
             self._client = httpx.AsyncClient(timeout=self._timeout)
