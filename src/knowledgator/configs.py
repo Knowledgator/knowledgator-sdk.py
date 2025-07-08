@@ -1,6 +1,7 @@
 from typing import Tuple, Optional, Union, Dict, Any
 from dataclasses import dataclass, field, replace
 from pydantic import Field
+import platform
 import random
 import os
 
@@ -11,6 +12,13 @@ SERVERS = {"main": "api.knowledgator.com",
            "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
            "extract-it-rapidapi": "extract-it.p.rapidapi.com",
            }
+
+
+DEFAULT_UA = (
+    lambda: f"knowledgator-python/{__version__} "
+            f"({platform.system()} {platform.release()}; "
+            f"{platform.machine()})"
+)
 
 @dataclass(slots=True)
 class RetryPolicyConfigs:
@@ -58,7 +66,7 @@ class ServersConfigs:
 
     def headers(self, name: Optional[str] = None) -> Dict[str, str]:
         """Return the header dict for a server alias (may be empty)."""
-        return self.base_headers.get(name or self.base_server, {})
+        return  (self.base_headers or {}).get(self.base_server, {})
 
 
 @dataclass(slots=True)
@@ -71,6 +79,7 @@ class SDKConfigs:
     debug_logger: Any = field(default_factory=Logger)     
     language: str = "python"
     sdk_version: str = __version__
+    user_agent: str = field(default_factory=DEFAULT_UA)
 
     server: str = "main"
     server_config: "ServersConfigs" = field(default_factory=ServersConfigs)
@@ -90,6 +99,8 @@ class SDKConfigs:
         return replace(self, **overrides)
     
     def get_server_details(self) -> Tuple[str, Dict[str, str]]:
-        server_url = f"https://{self.server_config.url(self.server)}"
-        headers = self.server_config.base_headers or {}
+        server_url = self.server_config.url(self.server) 
+        if "https" not in server_url:
+            server_url = f"https://{server_url}"
+        headers = self.server_config.base_headers.get(self.server, None) or {}
         return server_url, headers

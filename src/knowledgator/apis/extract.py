@@ -25,7 +25,7 @@ class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
 
-    PATH = '/extract_it/'
+    PATH = '/extract-it/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
@@ -37,7 +37,6 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -48,7 +47,7 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = "{}/{self.ENDPOINTS_CONFIG.main}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -59,7 +58,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:
@@ -103,7 +101,6 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -114,7 +111,7 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = "{}/{self.ENDPOINTS_CONFIG.main}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -125,7 +122,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:
@@ -172,7 +168,6 @@ class ExtractAPI(BaseAPI):
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -185,7 +180,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
             rules=rules,
         )
-        path = "{}/{self.ENDPOINTS_CONFIG.relations}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -196,7 +191,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:
@@ -241,7 +235,6 @@ class ExtractAPI(BaseAPI):
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -254,7 +247,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
             rules=rules,
         )
-        path = "{}/{self.ENDPOINTS_CONFIG.relations}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -265,7 +258,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:
@@ -307,7 +299,6 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -318,7 +309,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
 
-        path = "{}/{self.ENDPOINTS_CONFIG.summary}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -329,7 +320,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:
@@ -371,7 +361,6 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
-        retries: Optional[RetryPolicyConfigs] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -382,7 +371,7 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
 
-        path = "{}/{self.ENDPOINTS_CONFIG.summary}".format(self.PATH)
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -393,7 +382,6 @@ class ExtractAPI(BaseAPI):
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
-            retries=retries or self.configs.retry_config,
         )
 
         if self._log:

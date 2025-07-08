@@ -39,6 +39,10 @@ class BaseAPI:
         self._log = getattr(self.configs, "debug_logger", None)
         
         server_url, server_headers = self.configs.get_server_details()
+
+        self.base_headers = server_headers or {}
+
+
         retry_cfg: RetryPolicyConfigs = (
             self.configs.retry_config or RetryPolicyConfigs()
         )
@@ -111,13 +115,10 @@ class BaseAPI:
         url = urllib.parse.urljoin(base_url, raw_path.lstrip("/"))
 
         final_headers: MutableMapping[str, str] = {}
-
-        if self.configs.server_config and self.configs.server_config.base_headers:
-            final_headers.update(self.configs.server_config.base_headers)
-
+        if self.base_headers:
+            final_headers.update(self.base_headers)
         if headers:
             final_headers.update(headers)
-
         if accept is not None:
             final_headers["Content-Type"] = accept
         if user_agent is not None:
@@ -127,17 +128,22 @@ class BaseAPI:
         if timeout_ms is not None:
             extensions["timeout"] = timeout_ms / 1000.0
 
-        body_kwargs: dict[str, Any] = {}
-        body_kind = None
+        body_kind: Optional[str] = None
         if json_body is not None:
-            body_kwargs["json"] = json_body
             body_kind = "json"
+            extensions["_body_kind"] = body_kind
+            extensions["_body_value"] = json_body
         elif data_body is not None:
-            body_kwargs["data"] = data_body
             body_kind = "data"
+            extensions["_body_kind"] = body_kind
+            extensions["_body_value"] = data_body
+        
         if files is not None:
-            body_kwargs["files"] = files
             body_kind = "files"
+            extensions["_body_kind"] = body_kind
+            extensions["_body_value"] = files
+        
+        body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value", None)}
 
         req = httpx.Request(
             method=method,
@@ -166,22 +172,34 @@ class BaseAPI:
         """
         if self.configs.client is None:
             raise RuntimeError("Synchronous client is not initialised")
-        # Re-use the higher-level retry logic already present in HttpClient.
         
         start = time.perf_counter()
 
         if self._log:
             self._log.debug("BaseAPI: → %s %s", request.method, request.url)
 
-        response =  self.configs.client.request(
+        extensions = request.extensions or {}
+        body_kind = extensions.get("_body_kind")
+        body_value = extensions.get("_body_value")
+
+        body_params = {}
+        if body_kind == "json":
+            body_params["json"] = body_value
+        elif body_kind == "data":
+            body_params["data"] = body_value
+        elif body_kind == "files":
+            body_params["files"] = body_value
+        else:
+            body_params["data"] = request.content
+
+        response = self.configs.client.request(
+            url=request.url,
             method=request.method,
-            path=None,  # url already fully qualified
+            path=None, 
             params=request.url.params,
             headers=dict(request.headers),
-            data=request.content,
-            json=request._json,
-            files=request._files,
-            timeout=request.extensions.get("timeout") if request.extensions else None,
+            timeout=extensions.get("timeout"),
+            **body_params  
         )
 
         if self._log:
