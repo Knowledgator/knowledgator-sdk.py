@@ -145,22 +145,24 @@ class BaseAPI:
         if timeout_ms is not None:
             extensions["timeout"] = timeout_ms / 1000.0
 
-        body_kind: Optional[str] = None
+        # Support passing multiple body parts together (json, data, files).
+        # Store each kind separately in extensions so send()/send_async() can
+        # reconstruct the correct call to the underlying httpx client.
         if json_body is not None:
-            body_kind = "json"
-            extensions["_body_kind"] = body_kind
-            extensions["_body_value"] = json_body
-        elif data_body is not None:
-            body_kind = "data"
-            extensions["_body_kind"] = body_kind
-            extensions["_body_value"] = data_body
-        
+            extensions["_json"] = json_body
+        if data_body is not None:
+            extensions["_data"] = data_body
         if files is not None:
-            body_kind = "files"
-            extensions["_body_kind"] = body_kind
-            extensions["_body_value"] = files
-        
-        body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value", None)}
+            extensions["_files"] = files
+
+        # Prepare kwargs for httpx.Request constructor depending on provided parts
+        body_kwargs: dict[str, Any] = {}
+        if "_json" in extensions:
+            body_kwargs["json"] = extensions["_json"]
+        if "_data" in extensions:
+            body_kwargs["data"] = extensions["_data"]
+        if "_files" in extensions:
+            body_kwargs["files"] = extensions["_files"]
 
         req = httpx.Request(
             method=method,
@@ -172,12 +174,20 @@ class BaseAPI:
         )
 
         if self._log:
+            present = []
+            if "_json" in extensions:
+                present.append("json")
+            if "_data" in extensions:
+                present.append("data")
+            if "_files" in extensions:
+                present.append("files")
+            body_desc = ",".join(present) if present else "none"
             self._log.debug(
                 "BaseAPI: Prepared %s %s  query=%s body=%s",
                 method.upper(),
                 url,
                 bool(query_params),
-                body_kind or "none",
+                body_desc,
             )
 
         return req
@@ -196,17 +206,17 @@ class BaseAPI:
             self._log.debug("BaseAPI: → %s %s", request.method, request.url)
 
         extensions = request.extensions or {}
-        body_kind = extensions.get("_body_kind")
-        body_value = extensions.get("_body_value")
 
-        body_params = {}
-        if body_kind == "json":
-            body_params["json"] = body_value
-        elif body_kind == "data":
-            body_params["data"] = body_value
-        elif body_kind == "files":
-            body_params["files"] = body_value
-        else:
+        # Reconstruct body params from extensions (support json, data and files)
+        body_params: dict[str, Any] = {}
+        if "_json" in extensions:
+            body_params["json"] = extensions.get("_json")
+        if "_data" in extensions:
+            body_params["data"] = extensions.get("_data")
+        if "_files" in extensions:
+            body_params["files"] = extensions.get("_files")
+        # If nothing was set, fall back to raw request.content
+        if not body_params:
             body_params["data"] = request.content
 
         # httpx.Request.url may be an httpx.URL object; extract the raw path
@@ -244,19 +254,16 @@ class BaseAPI:
         if self._log:
             self._log.debug("BaseAPI: → %s %s (async)", request.method, request.url)
 
-        # Determine body kind/value from request.extensions like sync path does
+        # Determine body parts from request.extensions and populate body_params
         extensions = request.extensions or {}
-        body_kind = extensions.get("_body_kind")
-        body_value = extensions.get("_body_value")
-
         body_params = {}
-        if body_kind == "json":
-            body_params["json"] = body_value
-        elif body_kind == "data":
-            body_params["data"] = body_value
-        elif body_kind == "files":
-            body_params["files"] = body_value
-        else:
+        if "_json" in extensions:
+            body_params["json"] = extensions.get("_json")
+        if "_data" in extensions:
+            body_params["data"] = extensions.get("_data")
+        if "_files" in extensions:
+            body_params["files"] = extensions.get("_files")
+        if not body_params:
             body_params["data"] = request.content
 
         path = request.url.raw_path.decode() if isinstance(request.url.raw_path, bytes) else request.url.raw_path

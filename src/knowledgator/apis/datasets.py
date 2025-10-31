@@ -145,6 +145,11 @@ class DatasetsAPI(BaseAPI):
         name: str,
         type: str,
         description: Optional[str] = None,
+        # Optional file upload (multipart). If provided, request will be sent
+        # as multipart/form-data with the file and the other fields as form parts.
+        file: Optional[BinaryIO] = None,
+        filename: Optional[str] = None,
+        format: Optional[str] = None,
     ) -> DatasetObject:
         """
         Create a new dataset (sync).
@@ -160,18 +165,40 @@ class DatasetsAPI(BaseAPI):
         Raises:
             SDKError: If the request fails
         """
-        request_payload = DatasetCreateRequest(
-            name=name,
-            type=type,
-            description=description,
-        )
+        # Build payload
+        payload = {
+            "name": name,
+            "type": type,
+        }
+        if description is not None:
+            payload["short_description"] = description
+        if format is not None:
+            payload["format"] = format
 
-        # Make request
-        request = self._make_request(
-            method="POST",
-            path="/datasets/",
-            json_body=request_payload.model_dump(exclude_none=True),
-        )
+        # If a file is supplied, send multipart/form-data with both file and
+        # form fields. Otherwise fall back to JSON body for backward-compat.
+        if file is not None:
+            fn = filename or getattr(file, "name", "upload")
+            files = {"file": (fn, file)}
+            request = self._make_request(
+                method="POST",
+                path="/datasets/",
+                files=files,
+                data_body=payload,
+            )
+        else:
+            # Keep previous JSON behaviour
+            request_payload = DatasetCreateRequest(
+                name=name,
+                type=type,
+                description=description,
+            )
+            request = self._make_request(
+                method="POST",
+                path="/datasets/",
+                json_body=request_payload.model_dump(exclude_none=True),
+            )
+
         response = self.send(request)
 
         # Parse response
@@ -183,6 +210,9 @@ class DatasetsAPI(BaseAPI):
         name: str,
         type: str,
         description: Optional[str] = None,
+        file: Optional[BinaryIO] = None,
+        filename: Optional[str] = None,
+        format: Optional[str] = None,
     ) -> DatasetObject:
         """
         Create a new dataset (async).
@@ -198,18 +228,36 @@ class DatasetsAPI(BaseAPI):
         Raises:
             SDKError: If the request fails
         """
-        request_payload = DatasetCreateRequest(
-            name=name,
-            type=type,
-            description=description,
-        )
+        payload = {
+            "name": name,
+            "type": type,
+        }
+        if description is not None:
+            payload["short_description"] = description
+        if format is not None:
+            payload["format"] = format
 
-        # Make request
-        request = self._make_request(
-            method="POST",
-            path="/datasets/",
-            json_body=request_payload.model_dump(exclude_none=True),
-        )
+        if file is not None:
+            fn = filename or getattr(file, "name", "upload")
+            files = {"file": (fn, file)}
+            request = self._make_request(
+                method="POST",
+                path="/datasets/",
+                files=files,
+                data_body=payload,
+            )
+        else:
+            request_payload = DatasetCreateRequest(
+                name=name,
+                type=type,
+                description=description,
+            )
+            request = self._make_request(
+                method="POST",
+                path="/datasets/",
+                json_body=request_payload.model_dump(exclude_none=True),
+            )
+
         response = await self.send_async(request)
 
         # Parse response
