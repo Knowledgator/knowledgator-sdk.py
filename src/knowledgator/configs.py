@@ -8,10 +8,11 @@ import os
 from .version import __version__
 from .utils.logger import Logger
 
-SERVERS = {"main": "api.knowledgator.com",
-           "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
-           "extract-it-rapidapi": "extract-it.p.rapidapi.com",
-           }
+SERVERS = {
+    "main": "api.knowledgator.com",
+    "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
+    "extract-it-rapidapi": "extract-it.p.rapidapi.com",
+}
 
 
 DEFAULT_UA = (
@@ -61,12 +62,31 @@ class ServersConfigs:
         self.base_headers.setdefault(self.base_server, {})
 
     def url(self, name: Optional[str] = None) -> str:
-        """Return the URL by alias; if `name` is None, use `base_server`."""
-        return self.servers.get(name, None) or self.base_server
+        """Return a fully-qualified URL for the given server alias.
+
+        Falls back to the ``base_server`` mapping if the alias is unknown.
+        Ensures a proper scheme (https://) when only a hostname is provided.
+        """
+        key = name or self.base_server
+        # Prefer explicit mapping, then fallback to base_server mapping
+        raw = self.servers.get(key) or self.servers.get(self.base_server) or ""
+        
+        # If nothing is configured at all, raise an explicit error
+        if not raw:
+            raise ValueError(f"No server URL configured for alias '{key}' or base '{self.base_server}'")
+
+        # Normalize into a fully-qualified URL
+        if not (raw.startswith("http://") or raw.startswith("https://")):
+            raw = f"https://{raw}"
+        return raw
 
     def headers(self, name: Optional[str] = None) -> Dict[str, str]:
-        """Return the header dict for a server alias (may be empty)."""
-        return  (self.base_headers or {}).get(self.base_server, {})
+        """Return headers for a server alias, defaulting to ``base_server``.
+
+        Always returns a dict (possibly empty).
+        """
+        key = name or self.base_server
+        return (self.base_headers or {}).get(key, {})
 
 
 @dataclass(slots=True)
@@ -99,8 +119,7 @@ class SDKConfigs:
         return replace(self, **overrides)
     
     def get_server_details(self) -> Tuple[str, Dict[str, str]]:
-        server_url = self.server_config.url(self.server) 
-        if "https" not in server_url:
-            server_url = f"https://{server_url}"
-        headers = self.server_config.base_headers.get(self.server, None) or {}
+        """Return the resolved base URL and headers for the active server alias."""
+        server_url = self.server_config.url(self.server)
+        headers = self.server_config.headers(self.server)
         return server_url, headers

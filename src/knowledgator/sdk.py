@@ -4,7 +4,7 @@ from typing import Optional, Any, Dict
 import os
 import inspect
 
-from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig
+from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig, GatewayAPI, TrainingAPI, ModelsAPI, DatasetsAPI
 from .configs import (
     SDKConfigs,
     ServersConfigs,
@@ -15,6 +15,10 @@ from .configs import (
 class BaseKnowledgator:
     comprehend: ComprehendAPI
     extract: ExtractAPI
+    gateway: GatewayAPI
+    training: TrainingAPI
+    models: ModelsAPI
+    datasets: DatasetsAPI
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
@@ -43,12 +47,36 @@ class BaseKnowledgator:
         extract_cfg: SDKConfigs,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        gateway_cfg: Optional[SDKConfigs] = None,
+        gateway_endpoints: Optional[EndpointsConfig] = None,
+        training_cfg: Optional[SDKConfigs] = None,
+        training_endpoints: Optional[EndpointsConfig] = None,
+        models_cfg: Optional[SDKConfigs] = None,
+        models_endpoints: Optional[EndpointsConfig] = None,
+        datasets_cfg: Optional[SDKConfigs] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
         self.comprehend = ComprehendAPI(
             comprehend_cfg, endpoints_config=comprehend_endpoints
         )
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
+        # Gateway is a generic resolver for inference/service endpoints
+        if gateway_cfg is None:
+            gateway_cfg = comprehend_cfg
+        self.gateway = GatewayAPI(gateway_cfg, endpoints_config=gateway_endpoints)
+        # Training API for fine-tuning
+        if training_cfg is None:
+            training_cfg = comprehend_cfg
+        self.training = TrainingAPI(training_cfg, endpoints_config=training_endpoints)
+        # Models API for managing base models
+        if models_cfg is None:
+            models_cfg = comprehend_cfg
+        self.models = ModelsAPI(models_cfg, endpoints_config=models_endpoints)
+        # Datasets API for managing datasets
+        if datasets_cfg is None:
+            datasets_cfg = comprehend_cfg
+        self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -102,7 +130,7 @@ class Knowledgator(BaseKnowledgator):
         api_key: Optional[str] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
-        server_url: Optional[str] = None,
+        server_url: Optional[str] = os.getenv("KG_SERVER_URL"),
         server_base_headers: Optional[Dict[str, str]] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
@@ -128,11 +156,25 @@ class Knowledgator(BaseKnowledgator):
         else:
             servers_configs = ServersConfigs()
             server_alias = self.server_alias
-
-            if server_url is not None:
-                servers_configs.servers[server_alias] = server_url
-
+            
+            # Resolve server_url: prefer explicit param, then KG_SERVER_URL env var
+            env_server = os.getenv("KG_SERVER_URL")
+            resolved_server_url = server_url or env_server
+            
+            # pdb.set_trace()
+            if resolved_server_url is not None:
+                servers_configs.servers[server_alias] = resolved_server_url
+            # pdb.set_trace()
+            # Build base headers with runtime API key (KnowledgatorAPI-Key)
             base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
+
+            # If an environment bearer token is present, include it automatically
+            env_bearer = os.getenv("KG_BEARER")
+            if env_bearer:
+                # don't override existing Authorization set by caller; prefer existing
+                base_headers.setdefault("Authorization", f"Bearer {env_bearer}")
+
+            # User-supplied server_base_headers override any defaults
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
@@ -155,6 +197,14 @@ class Knowledgator(BaseKnowledgator):
             extract_cfg=self.configs,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            gateway_cfg=self.configs,
+            gateway_endpoints=None,
+            training_cfg=self.configs,
+            training_endpoints=None,
+            models_cfg=self.configs,
+            models_endpoints=None,
+            datasets_cfg=self.configs,
+            datasets_endpoints=None,
         )
 
     def _get_base_headers(
@@ -238,4 +288,12 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             extract_cfg=extract_cfg,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            gateway_cfg=common_configs,
+            gateway_endpoints=None,
+            training_cfg=common_configs,
+            training_endpoints=None,
+            models_cfg=common_configs,
+            models_endpoints=None,
+            datasets_cfg=common_configs,
+            datasets_endpoints=None,
         )

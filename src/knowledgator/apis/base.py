@@ -86,13 +86,18 @@ class BaseAPI:
             self.configs.async_client_supplied = False
 
     def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
-        if extra is None:
-            headers =  self.base_headers
-        headers = {**self.base_headers, **remove_none_from_dict(extra)}
-        raw_headers: list[tuple[bytes, bytes]] = [
-                (k.encode("ascii"), str(v).encode()) for k, v in headers.items()
-            ]
-        return raw_headers
+        """Merge base headers with any extra headers and return a plain dict.
+
+        Note: httpx.Request accepts a ``dict[str, str]`` for headers. We keep
+        them as a normal mapping here; encoding happens inside httpx.
+        """
+        base = dict(self.base_headers or {})
+        extra_clean = remove_none_from_dict(extra or {})
+        # Do not overwrite an explicit Authorization header with base headers
+        if "Authorization" in base and "Authorization" in extra_clean:
+            base.pop("Authorization", None)
+        merged = {**base, **extra_clean}
+        return merged
     
     def _make_request(  
         self,
@@ -120,13 +125,18 @@ class BaseAPI:
                 safe_val = urllib.parse.quote(str(v), safe="")
                 raw_path = raw_path.replace(f"{{{k}}}", safe_val)
 
-        url = urllib.parse.urljoin(base_url, raw_path.lstrip("/"))
+        # If caller supplies an absolute URL in path, honor it. Otherwise join.
+        if raw_path.startswith("http://") or raw_path.startswith("https://"):
+            url = raw_path
+        else:
+            url = urllib.parse.urljoin(base_url, raw_path.lstrip("/"))
 
         extra_headers: MutableMapping[str, str] = {}
         if headers:
             extra_headers.update(headers)
+        # Distinguish between Content-Type (based on body) and Accept header
         if accept is not None:
-            extra_headers["Content-Type"] = accept
+            extra_headers["Accept"] = accept
         if user_agent is not None:
             extra_headers["User-Agent"] = user_agent
         final_headers = self._headers(extra_headers)
@@ -199,14 +209,17 @@ class BaseAPI:
         else:
             body_params["data"] = request.content
 
+        # httpx.Request.url may be an httpx.URL object; extract the raw path
+        path = request.url.raw_path.decode() if isinstance(request.url.raw_path, bytes) else request.url.raw_path
+        # Call the configured HttpClient using the (method, path) signature
         response = self.configs.client.request(
-            url=request.url,
             method=request.method,
-            path=None, 
+            path=path,
             params=request.url.params,
-            headers=request.headers,
+            headers=dict(request.headers),
             timeout=extensions.get("timeout"),
-            **body_params  
+            follow_redirects=True,
+            **body_params,
         )
 
         if self._log:
@@ -231,15 +244,30 @@ class BaseAPI:
         if self._log:
             self._log.debug("BaseAPI: → %s %s (async)", request.method, request.url)
 
+        # Determine body kind/value from request.extensions like sync path does
+        extensions = request.extensions or {}
+        body_kind = extensions.get("_body_kind")
+        body_value = extensions.get("_body_value")
+
+        body_params = {}
+        if body_kind == "json":
+            body_params["json"] = body_value
+        elif body_kind == "data":
+            body_params["data"] = body_value
+        elif body_kind == "files":
+            body_params["files"] = body_value
+        else:
+            body_params["data"] = request.content
+
+        path = request.url.raw_path.decode() if isinstance(request.url.raw_path, bytes) else request.url.raw_path
         response = await self.configs.async_client.request(
             method=request.method,
-            path=None,
+            path=path,
             params=request.url.params,
             headers=dict(request.headers),
-            data=request.content,
-            json=request._json,
-            files=request._files,
-            timeout=request.extensions.get("timeout") if request.extensions else None,
+            timeout=extensions.get("timeout") if extensions else None,
+            follow_redirects=True,
+            **body_params,
         )
 
         if self._log:

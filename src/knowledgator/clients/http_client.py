@@ -54,7 +54,6 @@ class HttpClient(BaseHttpClient):
 
     def request(
         self,
-        url: str | None = None,
         method: str = "POST",
         path: str | None = None,
         *,
@@ -69,10 +68,7 @@ class HttpClient(BaseHttpClient):
         retries: Optional[int] = None,
         omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
-
-        if url is None:
-            url = self._url(path)
-
+        url = self._url(path)
         if params is not None:
             req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:

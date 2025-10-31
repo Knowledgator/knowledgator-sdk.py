@@ -7,23 +7,24 @@ from ..configs import RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults, ComprehendResponse
-from ..exceptions import (
+from ..errors import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
-    from_http_response
+    from_http_response,
 )
 from pydantic import ValidationError as PydanticValidationError
+from .training import TrainingAPI
 
 @dataclass
 class ComprehendEndpointsConfig(EndpointsConfig):
-    main: str = ""
+    main: str = "classify"
 
 class ComprehendAPI(BaseAPI):
     """
     ComprehendAPI - zero-shot classification API service,"""
 
-    PATH = '/comprehend-it/'
+    PATH = '/comprehend_it/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ComprehendEndpointsConfig()
@@ -82,7 +83,8 @@ class ComprehendAPI(BaseAPI):
             threshold=threshold,
             examples=examples,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+        # Route inference through the shared training endpoint
+        path = "/trainings/"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -140,6 +142,65 @@ class ComprehendAPI(BaseAPI):
             self._log.debug("ComprehendAPI: classified text successfully")
         return result_obj
 
+    # Training facade: delegate to TrainingAPI to reuse the same training endpoint
+    def start_training(
+        self,
+        *,
+        parent_model_id: str,
+        dataset_id: str,
+        seed: int,
+        batch: Optional[int] = None,
+        learning_rate_mult: Optional[int] = None,
+        num_of_epochs: Optional[int] = None,
+        name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        validation_dataset_id: Optional[str] = None,
+    ):
+        """Start a training job using the training API (sync).
+
+        This simply delegates to the shared TrainingAPI implementation so the
+        comprehend API surface exposes the same training capability and
+        parameters.
+        """
+        trainer = TrainingAPI(self.configs)
+        return trainer.start_training(
+            parent_model_id=parent_model_id,
+            dataset_id=dataset_id,
+            seed=seed,
+            batch=batch,
+            learning_rate_mult=learning_rate_mult,
+            num_of_epochs=num_of_epochs,
+            name=name,
+            model_name=model_name,
+            validation_dataset_id=validation_dataset_id,
+        )
+
+    async def start_training_async(
+        self,
+        *,
+        parent_model_id: str,
+        dataset_id: str,
+        seed: int,
+        batch: Optional[int] = None,
+        learning_rate_mult: Optional[int] = None,
+        num_of_epochs: Optional[int] = None,
+        name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        validation_dataset_id: Optional[str] = None,
+    ):
+        trainer = TrainingAPI(self.configs)
+        return await trainer.start_training_async(
+            parent_model_id=parent_model_id,
+            dataset_id=dataset_id,
+            seed=seed,
+            batch=batch,
+            learning_rate_mult=learning_rate_mult,
+            num_of_epochs=num_of_epochs,
+            name=name,
+            model_name=model_name,
+            validation_dataset_id=validation_dataset_id,
+        )
+
     async def it_async(
         self,
         text: str,
@@ -150,7 +211,8 @@ class ComprehendAPI(BaseAPI):
         server_url: str | None = None,
         timeout_ms: int | None = None,
         http_headers: Mapping[str, str] | None = None,
-    ) -> ComprehendResults:
+
+        ) -> ComprehendResults:
 
         body = ComprehendRequest(
             text=text,
@@ -158,7 +220,8 @@ class ComprehendAPI(BaseAPI):
             threshold=threshold,
             examples=examples,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+        # Route inference through the shared training endpoint
+        path = "/trainings/"
         request = self._make_request(
             method=self.METHOD,
             path=path,

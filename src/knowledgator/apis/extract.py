@@ -13,13 +13,14 @@ from ..models.outputs import (
     EntityResponse,
     RelationResponse,
 )
-from ..exceptions import (
+from ..errors import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
     from_http_response,
 )
 from pydantic import ValidationError as PydanticValidationError
+from .training import TrainingAPI
 
 @dataclass
 class ExtractEndpointsConfig(EndpointsConfig):
@@ -31,7 +32,8 @@ class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
 
-    PATH = '/extract-it/'
+    # Default API path for extract endpoints
+    PATH = '/extract_it/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
@@ -150,7 +152,8 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+        # Use the shared training endpoint for inference
+        path = "/trainings/"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -202,6 +205,63 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: extracted information successfully")
         return result_obj
 
+    # Training facade: delegate to TrainingAPI to reuse the same training endpoint
+    def start_training(
+        self,
+        *,
+        parent_model_id: str,
+        dataset_id: str,
+        seed: int,
+        batch: Optional[int] = None,
+        learning_rate_mult: Optional[int] = None,
+        num_of_epochs: Optional[int] = None,
+        name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        validation_dataset_id: Optional[str] = None,
+    ):
+        """Start a training job using the training API (sync).
+
+        Delegates to the shared TrainingAPI implementation.
+        """
+        trainer = TrainingAPI(self.configs)
+        return trainer.start_training(
+            parent_model_id=parent_model_id,
+            dataset_id=dataset_id,
+            seed=seed,
+            batch=batch,
+            learning_rate_mult=learning_rate_mult,
+            num_of_epochs=num_of_epochs,
+            name=name,
+            model_name=model_name,
+            validation_dataset_id=validation_dataset_id,
+        )
+
+    async def start_training_async(
+        self,
+        *,
+        parent_model_id: str,
+        dataset_id: str,
+        seed: int,
+        batch: Optional[int] = None,
+        learning_rate_mult: Optional[int] = None,
+        num_of_epochs: Optional[int] = None,
+        name: Optional[str] = None,
+        model_name: Optional[str] = None,
+        validation_dataset_id: Optional[str] = None,
+    ):
+        trainer = TrainingAPI(self.configs)
+        return await trainer.start_training_async(
+            parent_model_id=parent_model_id,
+            dataset_id=dataset_id,
+            seed=seed,
+            batch=batch,
+            learning_rate_mult=learning_rate_mult,
+            num_of_epochs=num_of_epochs,
+            name=name,
+            model_name=model_name,
+            validation_dataset_id=validation_dataset_id,
+        )
+
     async def it_async(
         self,
         text: str,
@@ -219,7 +279,8 @@ class ExtractAPI(BaseAPI):
             threshold=threshold,
             prompt=prompt,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+        # Use the shared training endpoint for inference
+        path = "/trainings/"
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -270,7 +331,6 @@ class ExtractAPI(BaseAPI):
         if self._log:
             self._log.debug("ExtractAPI: extracted information successfully")
         return result_obj
-    
 
     def relations(
         self,
