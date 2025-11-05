@@ -13,3 +13,6 @@ from .models import ModelsAPI
 
 # Datasets management exports
 from .datasets import DatasetsAPI
+
+# Inference / prediction API
+from .inference import InferenceAPI
