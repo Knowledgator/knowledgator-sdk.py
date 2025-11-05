@@ -206,3 +206,9 @@ class DatasetsListResponse(BaseModel):
     """Response for list datasets endpoint."""
     data: List[DatasetObject]
     total: int
+    
+    
+class DatasetCreateObject(BaseModel):
+    """Dataset object details."""
+    id: str = Field(..., description="Dataset ID")
+    status: str = Field(..., description="Dataset status")

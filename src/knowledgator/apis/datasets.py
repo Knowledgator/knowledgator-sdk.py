@@ -6,7 +6,7 @@ import httpx
 
 from .base import BaseAPI
 from ..models.inputs import DatasetCreateRequest, DatasetUpdateRequest
-from ..models.outputs import DatasetObject, DatasetsListResponse
+from ..models.outputs import DatasetCreateObject, DatasetObject, DatasetsListResponse
 
 # Error handling - using consolidated errors module
 from ..errors import (
@@ -202,7 +202,7 @@ class DatasetsAPI(BaseAPI):
         response = self.send(request)
 
         # Parse response
-        return self._parse_dataset_response(response)
+        return self._parse_dataset_create_response(response)
 
     async def create_dataset_async(
         self,
@@ -261,7 +261,7 @@ class DatasetsAPI(BaseAPI):
         response = await self.send_async(request)
 
         # Parse response
-        return self._parse_dataset_response(response)
+        return self._parse_dataset_create_response(response)
 
     def get_dataset(
         self,
@@ -632,6 +632,46 @@ class DatasetsAPI(BaseAPI):
         # Validate/shape into our pydantic model
         try:
             return DatasetObject(**data)
+        except Exception as exc:
+            raise InternalServerError(
+                body={
+                    "message": "Failed to parse dataset response",
+                    "error": str(exc),
+                    "raw_data": data,
+                },
+                headers=dict(response.headers),
+            ) from exc
+
+    def _parse_dataset_create_response(self, response: httpx.Response) -> DatasetCreateObject:
+        """Parse HTTP response into DatasetCreateObject.
+
+        Args:
+            response: HTTP response from dataset endpoint
+            
+        Returns:
+            DatasetCreateObject with dataset details
+            
+        Raises:
+            BadRequestError: For 400 errors (invalid input)
+            UnauthorizedError: For 401 errors (auth issues)
+            InternalServerError: For 500 errors or parsing failures
+        """
+
+        # Parse JSON first, isolate JSON errors
+        try:
+            data = response.json()
+        except ValueError as exc:
+            raise InternalServerError(
+                body={
+                    "message": "Response is not valid JSON",
+                    "raw_text": response.text,
+                },
+                headers=dict(response.headers),
+            ) from exc
+
+        # Validate/shape into our pydantic model
+        try:
+            return DatasetCreateObject(**data)
         except Exception as exc:
             raise InternalServerError(
                 body={

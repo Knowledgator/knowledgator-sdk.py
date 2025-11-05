@@ -4,7 +4,7 @@ from typing import Optional, Any, Dict
 import os
 import inspect
 
-from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig, GatewayAPI, TrainingAPI, ModelsAPI, DatasetsAPI
+from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig, GatewayAPI, TrainingAPI, ModelsAPI, DatasetsAPI, InferenceAPI
 from .configs import (
     SDKConfigs,
     ServersConfigs,
@@ -19,6 +19,7 @@ class BaseKnowledgator:
     training: TrainingAPI
     models: ModelsAPI
     datasets: DatasetsAPI
+    inference: InferenceAPI
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
@@ -55,6 +56,8 @@ class BaseKnowledgator:
         models_endpoints: Optional[EndpointsConfig] = None,
         datasets_cfg: Optional[SDKConfigs] = None,
         datasets_endpoints: Optional[EndpointsConfig] = None,
+        inference_cfg: Optional[SDKConfigs] = None,
+        inference_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
         self.comprehend = ComprehendAPI(
@@ -77,6 +80,10 @@ class BaseKnowledgator:
         if datasets_cfg is None:
             datasets_cfg = comprehend_cfg
         self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
+        # Inference / predict API
+        if inference_cfg is None:
+            inference_cfg = comprehend_cfg
+        self.inference = InferenceAPI(inference_cfg, endpoints_config=inference_endpoints)
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -205,6 +212,8 @@ class Knowledgator(BaseKnowledgator):
             models_endpoints=None,
             datasets_cfg=self.configs,
             datasets_endpoints=None,
+            inference_cfg=self.configs,
+            inference_endpoints=None,
         )
 
     def _get_base_headers(
@@ -296,4 +305,6 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             models_endpoints=None,
             datasets_cfg=common_configs,
             datasets_endpoints=None,
+            inference_cfg=common_configs,
+            inference_endpoints=None,
         )
