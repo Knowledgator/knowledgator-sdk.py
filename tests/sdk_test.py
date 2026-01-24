@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from knowledgator.sdk import Knowledgator, KnowledgatorRapidAPI
 from knowledgator.configs import SDKConfigs, ServersConfigs, RetryPolicyConfigs
-from knowledgator.apis import EndpointsConfig, ComprehendEndpointsConfig, ExtractEndpointsConfig
+from knowledgator.apis import EndpointsConfig, ComprehendEndpointsConfig, ExtractEndpointsConfig, InstructEndpointsConfig
 
 class MockHttpClient:
     def __init__(self, *args, **kwargs):
@@ -35,6 +35,7 @@ def test_knowledgator_init_defaults(mock_clients):
     assert kg.configs.retry_config.max_tries == 3
     assert kg.comprehend.configs == kg.configs
     assert kg.extract.configs == kg.configs
+    assert kg.instruct.configs == kg.configs
 
 def test_knowledgator_init_custom_params(mock_clients):
     """Test Knowledgator initializes with custom parameters"""
@@ -51,9 +52,10 @@ def test_knowledgator_init_custom_params(mock_clients):
         retry_config=custom_retry,
         timeout_ms=15000,
         comprehend_endpoints=ComprehendEndpointsConfig(main="custom-comprehend"),
-        extract_endpoints=ExtractEndpointsConfig(main="custom-extract")
+        extract_endpoints=ExtractEndpointsConfig(main="custom-extract"),
+        instruct_endpoints=InstructEndpointsConfig(main="custom-instruct")
     )
-    
+
     assert kg.configs.server_config.servers["main"] == "https://custom.example.com"
     assert kg.configs.client == mock_client
     assert kg.configs.async_client == mock_async_client
@@ -62,16 +64,18 @@ def test_knowledgator_init_custom_params(mock_clients):
     assert kg.configs.retry_config.max_tries == 5
     assert kg.comprehend.ENDPOINTS_CONFIG.main == "custom-comprehend"
     assert kg.extract.ENDPOINTS_CONFIG.main == "custom-extract"
+    assert kg.instruct.ENDPOINTS_CONFIG.main == "custom-instruct"
 
 def test_knowledgator_rapidapi_init_defaults(mock_clients):
     """Test KnowledgatorRapidAPI initializes correctly"""
     kg = KnowledgatorRapidAPI(api_key="rapid_key")
-    
+
     # Verify server configurations
     servers = kg.configs.server_config.servers
     headers = kg.configs.server_config.base_headers
     assert servers["comprehend-it-rapidapi"] == "https://comprehend-it.p.rapidapi.com"
     assert servers["extract-it-rapidapi"] == "https://extract-it.p.rapidapi.com"
+    assert servers["instruct-it-rapidapi"] == "https://instruct-it.p.rapidapi.com"
     assert headers["comprehend-it-rapidapi"] == {
         "x-rapidapi-key": "rapid_key",
         "x-rapidapi-host": "comprehend-it.p.rapidapi.com",
@@ -80,21 +84,25 @@ def test_knowledgator_rapidapi_init_defaults(mock_clients):
     # Verify API-specific configs
     assert kg.comprehend.configs.server == "comprehend-it-rapidapi"
     assert kg.extract.configs.server == "extract-it-rapidapi"
+    assert kg.instruct.configs.server == "instruct-it-rapidapi"
 
 def test_knowledgator_rapidapi_init_custom_hosts(mock_clients):
     """Test KnowledgatorRapidAPI with custom hosts"""
     kg = KnowledgatorRapidAPI(
         api_key="custom_rapid_key",
         comprehend_host="custom-comprehend.host",
-        extract_host="custom-extract.host"
+        extract_host="custom-extract.host",
+        instruct_host="custom-instruct.host"
     )
-    
+
     servers = kg.configs.server_config.servers
     headers = kg.configs.server_config.base_headers
     assert servers["comprehend-it-rapidapi"] == "https://custom-comprehend.host"
     assert servers["extract-it-rapidapi"] == "https://custom-extract.host"
+    assert servers["instruct-it-rapidapi"] == "https://custom-instruct.host"
     assert headers["comprehend-it-rapidapi"]["x-rapidapi-host"] == "custom-comprehend.host"
     assert headers["extract-it-rapidapi"]["x-rapidapi-host"] == "custom-extract.host"
+    assert headers["instruct-it-rapidapi"]["x-rapidapi-host"] == "custom-instruct.host"
 
 def test_knowledgator_with_prebuilt_config(mock_clients):
     """Test using pre-built SDKConfigs instance"""

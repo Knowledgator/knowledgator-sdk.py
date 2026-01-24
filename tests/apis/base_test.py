@@ -7,6 +7,8 @@ from knowledgator.apis import (
     ComprehendEndpointsConfig,
     ExtractAPI,
     ExtractEndpointsConfig,
+    InstructAPI,
+    InstructEndpointsConfig,
 )
 from knowledgator.utils.logger import Logger
 
@@ -144,3 +146,65 @@ def test_extract_retry_policy():
     api = ExtractAPI(configs)
     assert api.configs.retry_config is retry
     assert api.configs.retry_config.max_tries == 4
+
+
+# InstructAPI Tests
+
+def test_instruct_defaults():
+    configs = SDKConfigs()
+    api = InstructAPI(configs)
+    assert api.PATH == "/v1/instruct-it"
+    assert api.METHOD == "POST"
+    assert api.CONTENT_TYPE == "application/json"
+    assert isinstance(api.ENDPOINTS_CONFIG, InstructEndpointsConfig)
+    assert api.ENDPOINTS_CONFIG.main == ""
+
+def test_instruct_endpoint_override():
+    configs = SDKConfigs()
+    custom = InstructEndpointsConfig(main="custom-instruct")
+    api = InstructAPI(configs, endpoints_config=custom)
+    assert api.ENDPOINTS_CONFIG is custom
+    assert api.ENDPOINTS_CONFIG.main == "custom-instruct"
+
+def test_instruct_inherits_clients():
+    http = HttpClient(base_url="x")
+    async_http = AsyncHttpClient(base_url="x")
+    configs = SDKConfigs(client=http, async_client=async_http)
+    api = InstructAPI(configs)
+    assert api.client() is http
+    assert api.async_client() is async_http
+
+def test_instruct_path_override():
+    configs = SDKConfigs()
+    api = InstructAPI(configs, path="/custom-instruct-path")
+    assert api.PATH == "/custom-instruct-path"
+
+@pytest.mark.asyncio
+async def test_instruct_async_client():
+    async_http = AsyncHttpClient(base_url="async-i")
+    configs = SDKConfigs(async_client=async_http)
+    api = InstructAPI(configs)
+    assert api.async_client() is async_http
+
+def test_instruct_retry_and_logging():
+    retry = RetryPolicyConfigs(max_tries=2, base_delay=0.5)
+    logger = Logger()
+    configs = SDKConfigs(retry_config=retry, debug_logger=logger)
+    api = InstructAPI(configs)
+    assert api.configs.retry_config is retry
+    assert api._log is logger
+
+def test_instruct_endpoint_paths():
+    configs = SDKConfigs()
+    api = InstructAPI(configs)
+    assert api.PATH == "/v1/instruct-it"
+    # With empty main endpoint, path should be just the base path
+    expected_path = f"{api.PATH}/{api.ENDPOINTS_CONFIG.main}".rstrip('/')
+    assert expected_path == "/v1/instruct-it"
+
+def test_instruct_retry_policy():
+    retry = RetryPolicyConfigs(max_tries=6, base_delay=0.3)
+    configs = SDKConfigs(retry_config=retry)
+    api = InstructAPI(configs)
+    assert api.configs.retry_config is retry
+    assert api.configs.retry_config.max_tries == 6
