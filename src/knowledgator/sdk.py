@@ -4,7 +4,7 @@ from typing import Optional, Any, Dict
 import os
 import inspect
 
-from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig
+from .apis import ComprehendAPI, ExtractAPI, InstructAPI, EndpointsConfig
 from .configs import (
     SDKConfigs,
     ServersConfigs,
@@ -15,6 +15,7 @@ from .configs import (
 class BaseKnowledgator:
     comprehend: ComprehendAPI
     extract: ExtractAPI
+    instruct: InstructAPI
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
@@ -41,14 +42,19 @@ class BaseKnowledgator:
         *,
         comprehend_cfg: SDKConfigs,
         extract_cfg: SDKConfigs,
+        instruct_cfg: SDKConfigs,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
         self.comprehend = ComprehendAPI(
             comprehend_cfg, endpoints_config=comprehend_endpoints
         )
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
+        self.instruct = InstructAPI(
+            instruct_cfg, endpoints_config=instruct_endpoints
+        )
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -106,6 +112,7 @@ class Knowledgator(BaseKnowledgator):
         server_base_headers: Optional[Dict[str, str]] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
@@ -153,8 +160,10 @@ class Knowledgator(BaseKnowledgator):
         self._init_apis(
             comprehend_cfg=self.configs,
             extract_cfg=self.configs,
+            instruct_cfg=self.configs,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            instruct_endpoints=instruct_endpoints,
         )
 
     def _get_base_headers(
@@ -177,6 +186,7 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
 
     COMPREHEND_ALIAS = "comprehend-it-rapidapi"
     EXTRACT_ALIAS = "extract-it-rapidapi"
+    INSTRUCT_ALIAS = "instruct-it-rapidapi"
 
     def __init__(
         self,
@@ -185,8 +195,10 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
         configs: Optional[SDKConfigs] = None,
         comprehend_host: Optional[str] = None,
         extract_host: Optional[str] = None,
+        instruct_host: Optional[str] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
         timeout_ms: Optional[int] = None,
@@ -213,6 +225,14 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             "Content-Type": "application/json",
         }
 
+        instruct_host = instruct_host or SERVERS[self.INSTRUCT_ALIAS]
+        servers_configs.servers[self.INSTRUCT_ALIAS] = f"https://{instruct_host}"
+        servers_configs.base_headers[self.INSTRUCT_ALIAS] = {  # type: ignore[attr-defined]
+            "x-rapidapi-key": api_key,
+            "x-rapidapi-host": instruct_host,
+            "Content-Type": "application/json",
+        }
+
         if configs is None:
             common_configs = SDKConfigs(
                 client=client,
@@ -232,10 +252,13 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
 
         comprehend_cfg = common_configs.copy(server = self.COMPREHEND_ALIAS)
         extract_cfg = common_configs.copy(server = self.EXTRACT_ALIAS)
+        instruct_cfg = common_configs.copy(server = self.INSTRUCT_ALIAS)
 
         self._init_apis(
             comprehend_cfg=comprehend_cfg,
             extract_cfg=extract_cfg,
+            instruct_cfg=instruct_cfg,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            instruct_endpoints=instruct_endpoints,
         )

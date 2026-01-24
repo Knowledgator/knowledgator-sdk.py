@@ -1,6 +1,8 @@
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, constr, confloat
 
+from .common import FileMetadata
+
 
 class ClassificationExample(BaseModel):
     text: str
@@ -52,3 +54,20 @@ class ExtractSummaryRequest(BaseModel):
         default=0.5, description="Score cut-off"
     )
     prompt: Optional[str] = None
+
+
+class InstructRequest(BaseModel):
+    """Request model for Instruct-it API endpoint."""
+    text: str = Field(..., description="The main instruction/prompt for the model")
+    template: Optional[str] = Field(
+        default=None,
+        description="JSON string representing a structure the model should fill or emulate"
+    )
+    files: Optional[List[FileMetadata]] = Field(
+        default=None,
+        description="References to pre-uploaded or otherwise accessible files"
+    )
+    output_type: Optional[str] = Field(
+        default=None,
+        description="High-level hint for the desired output style (json, string, list, markdown, etc.)"
+    )

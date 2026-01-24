@@ -231,15 +231,28 @@ class BaseAPI:
         if self._log:
             self._log.debug("BaseAPI: → %s %s (async)", request.method, request.url)
 
+        extensions = request.extensions or {}
+        body_kind = extensions.get("_body_kind")
+        body_value = extensions.get("_body_value")
+
+        body_params = {}
+        if body_kind == "json":
+            body_params["json"] = body_value
+        elif body_kind == "data":
+            body_params["data"] = body_value
+        elif body_kind == "files":
+            body_params["files"] = body_value
+        else:
+            body_params["data"] = request.content
+
         response = await self.configs.async_client.request(
+            url=request.url,
             method=request.method,
             path=None,
             params=request.url.params,
             headers=dict(request.headers),
-            data=request.content,
-            json=request._json,
-            files=request._files,
-            timeout=request.extensions.get("timeout") if request.extensions else None,
+            timeout=extensions.get("timeout"),
+            **body_params
         )
 
         if self._log:

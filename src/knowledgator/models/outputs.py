@@ -1,4 +1,6 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
+import json
+
 from pydantic import BaseModel, Field, constr, confloat
 
 class ComprehendResponse(BaseModel):
@@ -77,3 +79,27 @@ class ExtractSummaryResults(BaseModel):
         default=0.5, description="Score cut-off for the summary"
     )
     status: str = Field(..., description="Status of the summary extraction request")
+
+class InstructResults(BaseModel):
+    outputs: Any = Field(
+        ...,
+        description="Any JSON-serializable value: object, list, string, or nested structure"
+    )
+    parsed: bool = Field(
+        default=True,
+        description="True if outputs was successfully parsed as JSON, False if raw string"
+    )
+
+    @classmethod
+    def from_model_response(cls, raw_response: str) -> "InstructResults":
+        """
+        Create an InstructResults from raw model output.
+
+        Attempts to parse as JSON. If parsing fails, returns the raw string
+        with parsed=False.
+        """
+        try:
+            parsed_output = json.loads(raw_response)
+            return cls(outputs=parsed_output, parsed=True)
+        except json.JSONDecodeError:
+            return cls(outputs=raw_response, parsed=False)
