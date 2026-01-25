@@ -17,7 +17,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 @dataclass
 class ComprehendEndpointsConfig(EndpointsConfig):
-    main: str = ""
+    main: str = "classify"
 
 class ComprehendAPI(BaseAPI):
     """
