@@ -100,10 +100,10 @@ class HttpClient(BaseHttpClient):
             attempt += 1
 
     # same convenience wrappers as async version
-    def get(self, path=None, **kw):   return self.request("GET",  path, **kw)
-    def post(self, path=None, **kw):  return self.request("POST", path, **kw)
-    def put(self, path=None, **kw):   return self.request("PUT",  path, **kw)
-    def delete(self, path=None, **kw):return self.request("DELETE",path, **kw)
+    def get(self, path=None, **kw):   return self.request(method="GET",  path=path, **kw)
+    def post(self, path=None, **kw):  return self.request(method="POST", path=path, **kw)
+    def put(self, path=None, **kw):   return self.request(method="PUT",  path=path, **kw)
+    def delete(self, path=None, **kw):return self.request(method="DELETE",path=path, **kw)
 
 class AsyncHttpClient(BaseHttpClient):
     def __init__(
@@ -176,7 +176,8 @@ class AsyncHttpClient(BaseHttpClient):
             await asyncio.sleep(self._retry.backoff(attempt))
             attempt += 1
 
-    async def get(self, path=None, **kw):  return await self.request("GET",  path, **kw)
-    async def post(self, path=None, **kw): return await self.request("POST", path, **kw)
-    async def put(self, path=None, **kw):  return await self.request("PUT",  path, **kw)
-    async def delete(self, path=None, **kw):return await self.request("DELETE",path, **kw)
+    # same convenience wrappers as sync version
+    async def get(self, path=None, **kw):  return await self.request(method="GET",  path=path, **kw)
+    async def post(self, path=None, **kw): return await self.request(method="POST", path=path, **kw)
+    async def put(self, path=None, **kw):  return await self.request(method="PUT",  path=path, **kw)
+    async def delete(self, path=None, **kw):return await self.request(method="DELETE",path=path, **kw)
