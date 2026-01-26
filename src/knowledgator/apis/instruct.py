@@ -1,19 +1,14 @@
-from typing import List, Optional, Mapping, Any
-from dataclasses import dataclass
 import json
+from typing import Any, List, Mapping, Optional
+from dataclasses import dataclass
+
 import httpx
 
 from .base import BaseAPI, EndpointsConfig
+from ..exceptions import BadRequest, ServerError, TransportTimeout, ConnectionFailure, from_http_response
+from ..models.common import FileMetadata
 from ..models.inputs import InstructRequest
 from ..models.outputs import InstructResults
-from ..models.common import FileMetadata
-from ..exceptions import (
-    ServerError,
-    TransportTimeout,
-    ConnectionFailure,
-    BadRequest,
-    from_http_response
-)
 
 
 @dataclass
@@ -29,9 +24,9 @@ class InstructAPI(BaseAPI):
     and output type hint, and returns a JSON-serializable object.
     """
 
-    PATH = '/instruct/'
-    METHOD = 'POST'
-    CONTENT_TYPE = 'application/json'
+    PATH = "/instruct/"
+    METHOD = "POST"
+    CONTENT_TYPE = "application/json"
     ENDPOINTS_CONFIG = InstructEndpointsConfig()
     SUCCESS_STATUS = "ok"
 
@@ -50,16 +45,10 @@ class InstructAPI(BaseAPI):
                 parsed_template = json.loads(template)
                 context["template"] = parsed_template
             except json.JSONDecodeError as exc:
-                raise BadRequest(
-                    f"Invalid JSON in template: {exc}",
-                    payload={"template": template}
-                )
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
 
         if files:
-            context["files"] = [
-                {"name": f.name, "has_content": f.content is not None}
-                for f in files
-            ]
+            context["files"] = [{"name": f.name, "has_content": f.content is not None} for f in files]
 
         if output_type:
             context["output_type"] = output_type
@@ -118,10 +107,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(
-                    f"Invalid JSON in template: {exc}",
-                    payload={"template": template}
-                )
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
 
         body = InstructRequest(
             text=text,
@@ -130,7 +116,7 @@ class InstructAPI(BaseAPI):
             output_type=output_type,
         )
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip('/')
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -154,9 +140,7 @@ class InstructAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "InstructAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("InstructAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -222,10 +206,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(
-                    f"Invalid JSON in template: {exc}",
-                    payload={"template": template}
-                )
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
 
         body = InstructRequest(
             text=text,
@@ -234,7 +215,7 @@ class InstructAPI(BaseAPI):
             output_type=output_type,
         )
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip('/')
+        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -258,9 +239,7 @@ class InstructAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "InstructAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("InstructAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)

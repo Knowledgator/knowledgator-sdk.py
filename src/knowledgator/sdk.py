@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, Any, Dict
 import os
 import inspect
+from typing import Any, Dict, Optional
 
-from .apis import ComprehendAPI, ExtractAPI, InstructAPI, EndpointsConfig
-from .configs import (
-    SDKConfigs,
-    ServersConfigs,
-    RetryPolicyConfigs,
-    SERVERS
-)
+from .apis import ExtractAPI, InstructAPI, ComprehendAPI, EndpointsConfig
+from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
+
 
 class BaseKnowledgator:
     comprehend: ComprehendAPI
@@ -22,18 +18,14 @@ class BaseKnowledgator:
     server_alias: str
 
     def __init__(
-        self, 
+        self,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
-        retry_config: Optional[RetryPolicyConfigs] = None
+        retry_config: Optional[RetryPolicyConfigs] = None,
     ):
         if retry_config is None:
-            self.retry_config = RetryPolicyConfigs(
-                max_tries=max_tries,
-                base_delay=base_delay,
-                max_delay=max_delay
-            )
+            self.retry_config = RetryPolicyConfigs(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay)
         else:
             self.retry_config = retry_config
 
@@ -48,13 +40,9 @@ class BaseKnowledgator:
         instruct_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
-        self.comprehend = ComprehendAPI(
-            comprehend_cfg, endpoints_config=comprehend_endpoints
-        )
+        self.comprehend = ComprehendAPI(comprehend_cfg, endpoints_config=comprehend_endpoints)
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
-        self.instruct = InstructAPI(
-            instruct_cfg, endpoints_config=instruct_endpoints
-        )
+        self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -73,19 +61,19 @@ class BaseKnowledgator:
         if (
             client
             and not self.configs.async_client_supplied
-            and not self._is_closed(client)          # helper from previous fix
+            and not self._is_closed(client)  # helper from previous fix
         ):
-            result = client.aclose()                 # call it first
-            if inspect.isawaitable(result):          # only await real coroutines
+            result = client.aclose()  # call it first
+            if inspect.isawaitable(result):  # only await real coroutines
                 await result
 
-    async def __aenter__(self) -> "BaseKnowledgator":
+    async def __aenter__(self) -> BaseKnowledgator:
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         await self.aclose()
 
-    def __enter__(self) -> "BaseKnowledgator":
+    def __enter__(self) -> BaseKnowledgator:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -99,6 +87,7 @@ class Knowledgator(BaseKnowledgator):
     >>> kg = Knowledgator(api_key="sk-...")
     >>> res = kg.comprehend.it("Kyiv is beautiful", ["geography", "sport"])
     """
+
     server_alias = "main"
 
     def __init__(
@@ -120,12 +109,7 @@ class Knowledgator(BaseKnowledgator):
         timeout_ms: Optional[int] = None,
         debug_logger: Any = None,
     ) -> None:
-        super().__init__(
-            max_tries=max_tries,
-            base_delay=base_delay,
-            max_delay=max_delay,
-            retry_config=retry_config
-        )
+        super().__init__(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay, retry_config=retry_config)
 
         if api_key is None:
             api_key = os.getenv("KG_API_KEY")
@@ -144,7 +128,7 @@ class Knowledgator(BaseKnowledgator):
                 base_headers.update(server_base_headers)
 
             servers_configs.base_headers[server_alias] = base_headers
-            
+
             self.configs = SDKConfigs(
                 client=client,
                 client_supplied=client is not None,
@@ -167,10 +151,7 @@ class Knowledgator(BaseKnowledgator):
         )
 
     def _get_base_headers(
-        self, 
-        servers_configs: ServersConfigs,
-        server_alias: Optional[str] = None,
-        api_key: Optional[str] = None
+        self, servers_configs: ServersConfigs, server_alias: Optional[str] = None, api_key: Optional[str] = None
     ) -> Dict[str, str]:
         """Generate base headers with proper API key."""
         base_headers: Dict[str, str] = {}
@@ -250,9 +231,9 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
 
         self.configs = common_configs
 
-        comprehend_cfg = common_configs.copy(server = self.COMPREHEND_ALIAS)
-        extract_cfg = common_configs.copy(server = self.EXTRACT_ALIAS)
-        instruct_cfg = common_configs.copy(server = self.INSTRUCT_ALIAS)
+        comprehend_cfg = common_configs.copy(server=self.COMPREHEND_ALIAS)
+        extract_cfg = common_configs.copy(server=self.EXTRACT_ALIAS)
+        instruct_cfg = common_configs.copy(server=self.INSTRUCT_ALIAS)
 
         self._init_apis(
             comprehend_cfg=comprehend_cfg,

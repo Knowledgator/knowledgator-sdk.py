@@ -1,16 +1,16 @@
-from typing import Any, Mapping, MutableMapping, Optional
-from dataclasses import dataclass
-import urllib.parse
-import httpx
-import time
+from __future__ import annotations
 
-from ..clients import AsyncHttpClient, HttpClient
-from ..configs import (
-    SDKConfigs,
-    RetryPolicyConfigs,
-    ServersConfigs
-)
+import time
+import urllib.parse
+from typing import Any, Mapping, Optional, MutableMapping
+from dataclasses import dataclass
+
+import httpx
+
+from ..clients import HttpClient, AsyncHttpClient
+from ..configs import SDKConfigs, ServersConfigs, RetryPolicyConfigs
 from ..utils.dictionaries_op import remove_none_from_dict
+
 
 @dataclass
 class EndpointsConfig:
@@ -22,35 +22,33 @@ class BaseAPI:
     METHOD: str
     CONTENT_TYPE: str
 
-    def __init__(self, configs: SDKConfigs, 
-                        server_configs: ServersConfigs = None, 
-                        path: Optional[str] = None, 
-                        endpoints_config: Optional[EndpointsConfig] = None) -> None:
+    def __init__(
+        self,
+        configs: SDKConfigs,
+        server_configs: ServersConfigs = None,
+        path: Optional[str] = None,
+        endpoints_config: Optional[EndpointsConfig] = None,
+    ) -> None:
         if path is not None:
             self.PATH = path
 
         if endpoints_config is not None:
             self.ENDPOINTS_CONFIG = endpoints_config
-            
+
         self.configs = configs
 
         if server_configs is not None:
             self.configs.server_config = server_configs
 
         self._log = getattr(self.configs, "debug_logger", None)
-        
+
         server_url, server_headers = self.configs.get_server_details()
 
         self.base_headers = server_headers or {}
 
-
-        retry_cfg: RetryPolicyConfigs = (
-            self.configs.retry_config or RetryPolicyConfigs()
-        )
+        retry_cfg: RetryPolicyConfigs = self.configs.retry_config or RetryPolicyConfigs()
         timeout_sec: float | int | None = (
-            (self.configs.timeout_ms or 0) / 1000
-            if self.configs.timeout_ms is not None
-            else None
+            (self.configs.timeout_ms or 0) / 1000 if self.configs.timeout_ms is not None else None
         )
 
         if self.configs.client is None:
@@ -87,14 +85,12 @@ class BaseAPI:
 
     def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
         if extra is None:
-            headers =  self.base_headers
+            headers = self.base_headers
         headers = {**self.base_headers, **remove_none_from_dict(extra)}
-        raw_headers: list[tuple[bytes, bytes]] = [
-                (k.encode("ascii"), str(v).encode()) for k, v in headers.items()
-            ]
+        raw_headers: list[tuple[bytes, bytes]] = [(k.encode("ascii"), str(v).encode()) for k, v in headers.items()]
         return raw_headers
-    
-    def _make_request(  
+
+    def _make_request(
         self,
         *,
         method: str,
@@ -110,7 +106,6 @@ class BaseAPI:
         timeout_ms: Optional[int] = None,
         url_override: Optional[str] = None,
     ) -> httpx.Request:
-
         server_url, _ = self.configs.get_server_details()
         base_url = url_override or urllib.parse.urljoin(server_url, "/")
 
@@ -144,13 +139,13 @@ class BaseAPI:
             body_kind = "data"
             extensions["_body_kind"] = body_kind
             extensions["_body_value"] = data_body
-        
+
         if files is not None:
             body_kind = "files"
             extensions["_body_kind"] = body_kind
             extensions["_body_value"] = files
-        
-        body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value", None)}
+
+        body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
 
         req = httpx.Request(
             method=method,
@@ -179,7 +174,7 @@ class BaseAPI:
         """
         if self.configs.client is None:
             raise RuntimeError("Synchronous client is not initialised")
-        
+
         start = time.perf_counter()
 
         if self._log:
@@ -202,11 +197,11 @@ class BaseAPI:
         response = self.configs.client.request(
             url=request.url,
             method=request.method,
-            path=None, 
+            path=None,
             params=request.url.params,
             headers=request.headers,
             timeout=extensions.get("timeout"),
-            **body_params  
+            **body_params,
         )
 
         if self._log:
@@ -217,9 +212,9 @@ class BaseAPI:
                 response.status_code,
                 (time.perf_counter() - start) * 1_000,
             )
-        
+
         return response
-    
+
     async def send_async(self, request: httpx.Request) -> httpx.Response:
         """
         Asynchronously send *request* using the configured `AsyncHttpClient`.
@@ -252,7 +247,7 @@ class BaseAPI:
             params=request.url.params,
             headers=dict(request.headers),
             timeout=extensions.get("timeout"),
-            **body_params
+            **body_params,
         )
 
         if self._log:
@@ -264,7 +259,7 @@ class BaseAPI:
                 (time.perf_counter() - start) * 1_000,
             )
         return response
-    
+
     def client(self) -> HttpClient:
         """Return the underlying *synchronous* client (for advanced use-cases)."""
         if self.configs.client is None:

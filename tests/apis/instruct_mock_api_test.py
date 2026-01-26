@@ -11,14 +11,15 @@ verifying the complete API contract including:
 """
 
 import json
-import pytest
 from unittest.mock import MagicMock, patch
-import httpx
 
-from knowledgator.apis.instruct import InstructAPI
-from knowledgator.models.common import FileMetadata
+import httpx
+import pytest
+
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import BadRequest, ServerError
+from knowledgator.apis.instruct import InstructAPI
+from knowledgator.models.common import FileMetadata
 
 
 class TestInstructAPIMockRequests:
@@ -39,9 +40,7 @@ class TestInstructAPIMockRequests:
         # Mock response matching API contract
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "outputs": "This is a simple text response"
-        }
+        mock_response.json.return_value = {"outputs": "This is a simple text response"}
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -50,7 +49,7 @@ class TestInstructAPIMockRequests:
 
         # Verify request was made
         assert api.configs.client.request.called
-        
+
         # Verify the request was called with json parameter containing the text
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
@@ -74,27 +73,19 @@ class TestInstructAPIMockRequests:
                 "key_points": [
                     "Users have right to data access",
                     "Data is encrypted at rest",
-                    "Retention period is 7 years"
+                    "Retention period is 7 years",
                 ],
-                "risk_level": "medium"
+                "risk_level": "medium",
             }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         # Create template
-        template = json.dumps({
-            "summary": "",
-            "key_points": [],
-            "risk_level": ""
-        })
+        template = json.dumps({"summary": "", "key_points": [], "risk_level": ""})
 
         # Make request
-        result = api.it(
-            text="Analyze this policy document",
-            template=template,
-            output_type="json"
-        )
+        result = api.it(text="Analyze this policy document", template=template, output_type="json")
 
         # Verify request body
         call_kwargs = api.configs.client.request.call_args.kwargs
@@ -120,16 +111,10 @@ class TestInstructAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Create file references
-        files = [
-            FileMetadata(name="file-id-1"),
-            FileMetadata(name="file-id-2")
-        ]
+        files = [FileMetadata(name="file-id-1"), FileMetadata(name="file-id-2")]
 
         # Make request
-        result = api.it(
-            text="Compare these two documents",
-            files=files
-        )
+        result = api.it(text="Compare these two documents", files=files)
 
         # Verify request body includes file references
         call_kwargs = api.configs.client.request.call_args.kwargs
@@ -151,16 +136,10 @@ class TestInstructAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Create files with content
-        files = [
-            FileMetadata(name="document.pdf", content=b"PDF binary content here")
-        ]
+        files = [FileMetadata(name="document.pdf", content=b"PDF binary content here")]
 
         # Make request
-        result = api.it(
-            text="Process this document",
-            files=files,
-            output_type="list"
-        )
+        result = api.it(text="Process this document", files=files, output_type="list")
 
         # Verify response is a list
         assert isinstance(result.outputs, list)
@@ -171,18 +150,12 @@ class TestInstructAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": {
-                "status": "success",
-                "data": {"count": 42, "items": ["a", "b", "c"]}
-            }
+            "outputs": {"status": "success", "data": {"count": 42, "items": ["a", "b", "c"]}}
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(
-            text="Return structured data",
-            output_type="json"
-        )
+        result = api.it(text="Return structured data", output_type="json")
 
         assert isinstance(result.outputs, dict)
         assert result.outputs["status"] == "success"
@@ -192,16 +165,11 @@ class TestInstructAPIMockRequests:
         """Test output_type='list' returns array."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "outputs": ["First item", "Second item", "Third item"]
-        }
+        mock_response.json.return_value = {"outputs": ["First item", "Second item", "Third item"]}
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(
-            text="Generate a list of steps",
-            output_type="list"
-        )
+        result = api.it(text="Generate a list of steps", output_type="list")
 
         assert isinstance(result.outputs, list)
         assert len(result.outputs) == 3
@@ -210,16 +178,11 @@ class TestInstructAPIMockRequests:
         """Test output_type='string' returns plain text."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "outputs": "This is a natural language response explaining the concept."
-        }
+        mock_response.json.return_value = {"outputs": "This is a natural language response explaining the concept."}
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(
-            text="Explain quantum computing",
-            output_type="string"
-        )
+        result = api.it(text="Explain quantum computing", output_type="string")
 
         assert isinstance(result.outputs, str)
         assert "natural language" in result.outputs
@@ -234,10 +197,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(
-            text="Generate a report in markdown",
-            output_type="markdown"
-        )
+        result = api.it(text="Generate a report in markdown", output_type="markdown")
 
         assert "# Report Title" in result.outputs
         assert "## Section" in result.outputs
@@ -247,18 +207,12 @@ class TestInstructAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"input": "hello", "expected": "HELLO"},
-                {"input": "world", "expected": "WORLD"}
-            ]
+            "outputs": [{"input": "hello", "expected": "HELLO"}, {"input": "world", "expected": "WORLD"}]
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(
-            text="Generate test cases for uppercase function",
-            output_type="test_cases"
-        )
+        result = api.it(text="Generate test cases for uppercase function", output_type="test_cases")
 
         assert isinstance(result.outputs, list)
         assert result.outputs[0]["input"] == "hello"
@@ -267,11 +221,8 @@ class TestInstructAPIMockRequests:
     def test_invalid_template_json_error(self, api):
         """Test that invalid JSON template raises BadRequest (400)."""
         with pytest.raises(BadRequest) as exc_info:
-            api.it(
-                text="Test instruction",
-                template="not valid json {"
-            )
-        
+            api.it(text="Test instruction", template="not valid json {")
+
         assert "Invalid JSON in template" in str(exc_info.value)
 
     def test_server_error_500(self, api):
@@ -298,7 +249,7 @@ class TestInstructAPIMockRequests:
 
         with pytest.raises(ServerError) as exc_info:
             api.it(text="Test instruction")
-        
+
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_non_json_response_fallback(self, api):
@@ -320,24 +271,15 @@ class TestInstructAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": {
-                "analysis": "Complete analysis",
-                "recommendations": ["Rec 1", "Rec 2"]
-            },
-            "parsed": True
+            "outputs": {"analysis": "Complete analysis", "recommendations": ["Rec 1", "Rec 2"]},
+            "parsed": True,
         }
         mock_response.headers = {"x-request-id": "req-full-123"}
         api.configs.client.request.return_value = mock_response
 
-        template = json.dumps({
-            "analysis": "",
-            "recommendations": []
-        })
+        template = json.dumps({"analysis": "", "recommendations": []})
 
-        files = [
-            FileMetadata(name="doc1.pdf"),
-            FileMetadata(name="doc2.docx", content=b"content")
-        ]
+        files = [FileMetadata(name="doc1.pdf"), FileMetadata(name="doc2.docx", content=b"content")]
 
         result = api.it(
             text="Analyze these documents comprehensively",
@@ -345,7 +287,7 @@ class TestInstructAPIMockRequests:
             files=files,
             output_type="json",
             timeout_ms=30000,
-            http_headers={"X-Custom-Header": "custom-value"}
+            http_headers={"X-Custom-Header": "custom-value"},
         )
 
         # Verify request structure
@@ -379,14 +321,12 @@ class TestInstructAPIAsyncMockRequests:
     async def test_async_basic_request(self, api):
         """Test basic async request."""
         from unittest.mock import AsyncMock
-        
+
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "outputs": {"answer": "The answer is 42"}
-        }
+        mock_response.json.return_value = {"outputs": {"answer": "The answer is 42"}}
         mock_response.headers = {}
-        
+
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
         result = await api.it_async(text="What is the answer?")
@@ -398,25 +338,18 @@ class TestInstructAPIAsyncMockRequests:
     async def test_async_with_all_parameters(self, api):
         """Test async request with all parameters."""
         from unittest.mock import AsyncMock
-        
+
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "outputs": ["Result 1", "Result 2", "Result 3"]
-        }
+        mock_response.json.return_value = {"outputs": ["Result 1", "Result 2", "Result 3"]}
         mock_response.headers = {}
-        
+
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
         template = json.dumps({"items": []})
         files = [FileMetadata(name="file.txt")]
 
-        result = await api.it_async(
-            text="Process this",
-            template=template,
-            files=files,
-            output_type="list"
-        )
+        result = await api.it_async(text="Process this", template=template, files=files, output_type="list")
 
         assert isinstance(result.outputs, list)
         assert len(result.outputs) == 3

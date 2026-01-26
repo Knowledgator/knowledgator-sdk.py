@@ -1,11 +1,17 @@
 from __future__ import annotations
+
+import time
+import random
+import asyncio
+import urllib.parse
+from typing import Any, Union, Mapping, Iterable, Iterator, Optional
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Optional, Union, Iterator
 
-import asyncio, httpx, random, time, urllib.parse
+import httpx
 
-from ..utils.dictionaries_op import remove_none_from_dict, remove_omit_from_dict
 from ..configs import RetryPolicyConfigs
+from ..utils.dictionaries_op import remove_none_from_dict, remove_omit_from_dict
+
 
 class BaseHttpClient:
     def __init__(
@@ -23,7 +29,8 @@ class BaseHttpClient:
 
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
-    
+
+
 class HttpClient(BaseHttpClient):
     def __init__(
         self,
@@ -42,7 +49,6 @@ class HttpClient(BaseHttpClient):
 
         if self._client is None:
             self._client = httpx.Client(timeout=self._timeout)
-
 
     def __enter__(self):
         if self._client is None:
@@ -69,15 +75,14 @@ class HttpClient(BaseHttpClient):
         retries: Optional[int] = None,
         omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
-
         if url is None:
             url = self._url(path)
 
         if params is not None:
-            req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
+            req_params = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
             req_params = {}
-        max_tries   = retries if retries is not None else self._retry.max_tries
+        max_tries = retries if retries is not None else self._retry.max_tries
 
         attempt = 0
         while True:
@@ -100,10 +105,18 @@ class HttpClient(BaseHttpClient):
             attempt += 1
 
     # same convenience wrappers as async version
-    def get(self, path=None, **kw):   return self.request(method="GET",  path=path, **kw)
-    def post(self, path=None, **kw):  return self.request(method="POST", path=path, **kw)
-    def put(self, path=None, **kw):   return self.request(method="PUT",  path=path, **kw)
-    def delete(self, path=None, **kw):return self.request(method="DELETE",path=path, **kw)
+    def get(self, path=None, **kw):
+        return self.request(method="GET", path=path, **kw)
+
+    def post(self, path=None, **kw):
+        return self.request(method="POST", path=path, **kw)
+
+    def put(self, path=None, **kw):
+        return self.request(method="PUT", path=path, **kw)
+
+    def delete(self, path=None, **kw):
+        return self.request(method="DELETE", path=path, **kw)
+
 
 class AsyncHttpClient(BaseHttpClient):
     def __init__(
@@ -148,13 +161,12 @@ class AsyncHttpClient(BaseHttpClient):
         retries: Optional[int] = None,
         omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
-
         url = self._url(path)
         if params is not None:
-            req_params  = remove_omit_from_dict(remove_none_from_dict(params), omit)
+            req_params = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
-            req_params = {}        
-        max_tries   = retries if retries is not None else self._retry.max_tries
+            req_params = {}
+        max_tries = retries if retries is not None else self._retry.max_tries
 
         attempt = 0
         while True:
@@ -171,13 +183,20 @@ class AsyncHttpClient(BaseHttpClient):
                 follow_redirects=follow_redirects,
             )
             if attempt >= max_tries - 1 or not self._retry.should_retry(resp.status_code):
-                return resp         # success or exhausted retries
+                return resp  # success or exhausted retries
 
             await asyncio.sleep(self._retry.backoff(attempt))
             attempt += 1
 
     # same convenience wrappers as sync version
-    async def get(self, path=None, **kw):  return await self.request(method="GET",  path=path, **kw)
-    async def post(self, path=None, **kw): return await self.request(method="POST", path=path, **kw)
-    async def put(self, path=None, **kw):  return await self.request(method="PUT",  path=path, **kw)
-    async def delete(self, path=None, **kw):return await self.request(method="DELETE",path=path, **kw)
+    async def get(self, path=None, **kw):
+        return await self.request(method="GET", path=path, **kw)
+
+    async def post(self, path=None, **kw):
+        return await self.request(method="POST", path=path, **kw)
+
+    async def put(self, path=None, **kw):
+        return await self.request(method="PUT", path=path, **kw)
+
+    async def delete(self, path=None, **kw):
+        return await self.request(method="DELETE", path=path, **kw)

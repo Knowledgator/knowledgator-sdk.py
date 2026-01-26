@@ -1,44 +1,43 @@
-from typing import List, Optional, Dict, Mapping, Any
+from __future__ import annotations
+
+from typing import Any, Dict, List, Mapping, Optional
 from dataclasses import dataclass
+
 import httpx
+from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
 from ..configs import RetryPolicyConfigs
-from ..utils.dictionaries_op import remove_none_from_dict
+from ..exceptions import ServerError, TransportTimeout, ConnectionFailure, from_http_response
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults, ComprehendResponse
-from ..exceptions import (
-    ServerError,
-    TransportTimeout,
-    ConnectionFailure,
-    from_http_response
-)
-from pydantic import ValidationError as PydanticValidationError
+from ..utils.dictionaries_op import remove_none_from_dict
+
 
 @dataclass
 class ComprehendEndpointsConfig(EndpointsConfig):
     main: str = "classify"
 
+
 class ComprehendAPI(BaseAPI):
     """
     ComprehendAPI - zero-shot classification API service,"""
 
-    PATH = '/comprehend/'
-    METHOD = 'POST'
-    CONTENT_TYPE = 'application/json'
+    PATH = "/comprehend/"
+    METHOD = "POST"
+    CONTENT_TYPE = "application/json"
     ENDPOINTS_CONFIG = ComprehendEndpointsConfig()
-    SUCCESS_STATUS = "ok"        
+    SUCCESS_STATUS = "ok"
     DEFAULT_THRESHOLD = 0.5
 
     def parse_labels(
-            self, 
-            raw: dict[str, Any],
-            *,
-            text_fallback: str,
-            labels_fallback: List[str],
-            threshold_fallback: Optional[float] = None
-        ):
-
+        self,
+        raw: dict[str, Any],
+        *,
+        text_fallback: str,
+        labels_fallback: List[str],
+        threshold_fallback: Optional[float] = None,
+    ):
         outputs = raw.get("outputs")
         if not isinstance(outputs, list):
             raise ServerError(
@@ -60,7 +59,9 @@ class ComprehendAPI(BaseAPI):
             results=parsed_results,
             input_text=raw.get("input_text", text_fallback),
             labels=raw.get("labels", labels_fallback),
-            threshold=raw.get("threshold", threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD),
+            threshold=raw.get(
+                "threshold", threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD
+            ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
         return result_obj
@@ -106,9 +107,7 @@ class ComprehendAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ComprehendAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ComprehendAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -124,10 +123,9 @@ class ComprehendAPI(BaseAPI):
             ) from exc
 
         try:
-            result_obj = self.parse_labels(raw, 
-                                           text_fallback = text, 
-                                           labels_fallback = labels, 
-                                           threshold_fallback = threshold)
+            result_obj = self.parse_labels(
+                raw, text_fallback=text, labels_fallback=labels, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             raise ServerError(
                 "Malformed or unexpected response",
@@ -151,7 +149,6 @@ class ComprehendAPI(BaseAPI):
         timeout_ms: int | None = None,
         http_headers: Mapping[str, str] | None = None,
     ) -> ComprehendResults:
-
         body = ComprehendRequest(
             text=text,
             labels=labels,
@@ -198,10 +195,9 @@ class ComprehendAPI(BaseAPI):
             ) from exc
 
         try:
-            result_obj = self.parse_labels(raw, 
-                                           text_fallback = text, 
-                                           labels_fallback = labels, 
-                                           threshold_fallback = threshold)      
+            result_obj = self.parse_labels(
+                raw, text_fallback=text, labels_fallback=labels, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             raise ServerError(
                 "Malformed or unexpected response",
@@ -209,7 +205,6 @@ class ComprehendAPI(BaseAPI):
                 payload={"raw": raw},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
-
 
         if self._log:
             self._log.debug("ComprehendAPI: classified text successfully")

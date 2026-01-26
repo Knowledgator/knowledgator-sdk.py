@@ -1,31 +1,41 @@
 import os
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from knowledgator.sdk import Knowledgator, KnowledgatorRapidAPI
+from knowledgator.apis import (
+    EndpointsConfig,
+    ExtractEndpointsConfig,
+    InstructEndpointsConfig,
+    ComprehendEndpointsConfig,
+)
 from knowledgator.configs import SDKConfigs, ServersConfigs, RetryPolicyConfigs
-from knowledgator.apis import EndpointsConfig, ComprehendEndpointsConfig, ExtractEndpointsConfig, InstructEndpointsConfig
+
 
 class MockHttpClient:
     def __init__(self, *args, **kwargs):
         pass
 
+
 class MockAsyncHttpClient:
     def __init__(self, *args, **kwargs):
         pass
+
 
 @pytest.fixture
 def mock_clients(monkeypatch):
     monkeypatch.setattr("knowledgator.clients.http_client.HttpClient", MockHttpClient)
     monkeypatch.setattr("knowledgator.clients.http_client.AsyncHttpClient", MockAsyncHttpClient)
 
+
 def test_knowledgator_init_defaults(mock_clients):
     """Test Knowledgator initializes with default configs"""
     # Set environment variable for API key
     os.environ["KG_API_KEY"] = "env_api_key"
-    
+
     kg = Knowledgator()
-    
+
     assert kg.configs.server == "main"
     assert kg.configs.server_config.servers["main"] == "https://api.knowledgator.com"
     assert kg.configs.client is not None
@@ -37,12 +47,13 @@ def test_knowledgator_init_defaults(mock_clients):
     assert kg.extract.configs == kg.configs
     assert kg.instruct.configs == kg.configs
 
+
 def test_knowledgator_init_custom_params(mock_clients):
     """Test Knowledgator initializes with custom parameters"""
     custom_retry = RetryPolicyConfigs(max_tries=5)
     mock_client = MockHttpClient()
     mock_async_client = MockAsyncHttpClient()
-    
+
     kg = Knowledgator(
         api_key="custom_key",
         client=mock_client,
@@ -53,7 +64,7 @@ def test_knowledgator_init_custom_params(mock_clients):
         timeout_ms=15000,
         comprehend_endpoints=ComprehendEndpointsConfig(main="custom-comprehend"),
         extract_endpoints=ExtractEndpointsConfig(main="custom-extract"),
-        instruct_endpoints=InstructEndpointsConfig(main="custom-instruct")
+        instruct_endpoints=InstructEndpointsConfig(main="custom-instruct"),
     )
 
     assert kg.configs.server_config.servers["main"] == "https://custom.example.com"
@@ -65,6 +76,7 @@ def test_knowledgator_init_custom_params(mock_clients):
     assert kg.comprehend.ENDPOINTS_CONFIG.main == "custom-comprehend"
     assert kg.extract.ENDPOINTS_CONFIG.main == "custom-extract"
     assert kg.instruct.ENDPOINTS_CONFIG.main == "custom-instruct"
+
 
 def test_knowledgator_rapidapi_init_defaults(mock_clients):
     """Test KnowledgatorRapidAPI initializes correctly"""
@@ -86,13 +98,14 @@ def test_knowledgator_rapidapi_init_defaults(mock_clients):
     assert kg.extract.configs.server == "extract-it-rapidapi"
     assert kg.instruct.configs.server == "instruct-it-rapidapi"
 
+
 def test_knowledgator_rapidapi_init_custom_hosts(mock_clients):
     """Test KnowledgatorRapidAPI with custom hosts"""
     kg = KnowledgatorRapidAPI(
         api_key="custom_rapid_key",
         comprehend_host="custom-comprehend.host",
         extract_host="custom-extract.host",
-        instruct_host="custom-instruct.host"
+        instruct_host="custom-instruct.host",
     )
 
     servers = kg.configs.server_config.servers
@@ -104,18 +117,17 @@ def test_knowledgator_rapidapi_init_custom_hosts(mock_clients):
     assert headers["extract-it-rapidapi"]["x-rapidapi-host"] == "custom-extract.host"
     assert headers["instruct-it-rapidapi"]["x-rapidapi-host"] == "custom-instruct.host"
 
+
 def test_knowledgator_with_prebuilt_config(mock_clients):
     """Test using pre-built SDKConfigs instance"""
-    custom_config = SDKConfigs(
-        server="custom_server",
-        retry_config=RetryPolicyConfigs(max_tries=10)
-    )
-    
+    custom_config = SDKConfigs(server="custom_server", retry_config=RetryPolicyConfigs(max_tries=10))
+
     kg = Knowledgator(configs=custom_config, api_key="key")
-    
+
     assert kg.configs == custom_config
     assert kg.configs.retry_config.max_tries == 10
     assert kg.configs.server == "custom_server"
+
 
 def test_knowledgator_headers_without_key(mock_clients):
     """Test header generation without API key"""
@@ -123,19 +135,21 @@ def test_knowledgator_headers_without_key(mock_clients):
     base_headers = kg.configs.server_config.base_headers
     assert "KnowledgatorAPI-Key" not in base_headers
 
+
 def test_knowledgator_context_management(mock_clients):
     """Test context manager properly closes clients"""
     with Knowledgator(api_key="key") as kg:
         kg.configs.client = MagicMock()
         kg.configs.async_client = MagicMock()
-    
+
     kg.configs.client.close.assert_called_once()
     kg.configs.async_client.aclose.assert_not_called()  # Sync context doesn't close async
+
 
 @pytest.mark.asyncio
 async def test_knowledgator_async_context(mock_clients):
     """Test async context manager"""
     async with Knowledgator(api_key="key") as kg:
         kg.configs.async_client = MagicMock()
-    
+
     kg.configs.async_client.aclose.assert_called_once()
