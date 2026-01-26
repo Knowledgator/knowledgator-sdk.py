@@ -46,7 +46,7 @@ def test_base_api_path_override():
 def test_comprehend_defaults():
     configs = SDKConfigs()
     api = ComprehendAPI(configs)
-    assert api.PATH == "/comprehend-it/"
+    assert api.PATH == "/comprehend/"
     assert api.METHOD == "POST"
     assert api.CONTENT_TYPE == "application/json"
     assert isinstance(api.ENDPOINTS_CONFIG, ComprehendEndpointsConfig)
@@ -90,19 +90,19 @@ def test_comprehend_retry_and_logging():
 def test_comprehend_endpoint_paths():
     configs = SDKConfigs()
     api = ComprehendAPI(configs)
-    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/comprehend-it/classify"
+    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/comprehend/classify"
 
 
 def test_extract_defaults():
     configs = SDKConfigs()
     api = ExtractAPI(configs)
-    assert api.PATH == "/extract-it/"
+    assert api.PATH == "/extract/"
     assert api.METHOD == "POST"
     assert api.CONTENT_TYPE == "application/json"
     assert isinstance(api.ENDPOINTS_CONFIG, ExtractEndpointsConfig)
-    assert api.ENDPOINTS_CONFIG.main == "general"
-    assert api.ENDPOINTS_CONFIG.relations == "relation-extraction"
-    assert api.ENDPOINTS_CONFIG.summary == "summarization"
+    assert api.ENDPOINTS_CONFIG.main == ""
+    assert api.ENDPOINTS_CONFIG.relations == "relations"
+    assert api.ENDPOINTS_CONFIG.summary == "summary"
 
 def test_extract_endpoint_override():
     configs = SDKConfigs()
@@ -136,9 +136,9 @@ async def test_extract_async_client():
 def test_extract_endpoint_paths():
     configs = SDKConfigs()
     api = ExtractAPI(configs)
-    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/extract-it/general"
-    assert api.PATH + api.ENDPOINTS_CONFIG.relations == "/extract-it/relation-extraction"
-    assert api.PATH + api.ENDPOINTS_CONFIG.summary == "/extract-it/summarization"
+    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/extract/"
+    assert api.PATH + api.ENDPOINTS_CONFIG.relations == "/extract/relations"
+    assert api.PATH + api.ENDPOINTS_CONFIG.summary == "/extract/summary"
 
 def test_extract_retry_policy():
     retry = RetryPolicyConfigs(max_tries=4, base_delay=0.2)
@@ -153,7 +153,7 @@ def test_extract_retry_policy():
 def test_instruct_defaults():
     configs = SDKConfigs()
     api = InstructAPI(configs)
-    assert api.PATH == "/v1/instruct-it"
+    assert api.PATH == "/instruct/"
     assert api.METHOD == "POST"
     assert api.CONTENT_TYPE == "application/json"
     assert isinstance(api.ENDPOINTS_CONFIG, InstructEndpointsConfig)
@@ -197,10 +197,10 @@ def test_instruct_retry_and_logging():
 def test_instruct_endpoint_paths():
     configs = SDKConfigs()
     api = InstructAPI(configs)
-    assert api.PATH == "/v1/instruct-it"
+    assert api.PATH == "/instruct/"
     # With empty main endpoint, path should be just the base path
     expected_path = f"{api.PATH}/{api.ENDPOINTS_CONFIG.main}".rstrip('/')
-    assert expected_path == "/v1/instruct-it"
+    assert expected_path == "/instruct"
 
 def test_instruct_retry_policy():
     retry = RetryPolicyConfigs(max_tries=6, base_delay=0.3)

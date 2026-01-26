@@ -8,7 +8,7 @@ import os
 from .version import __version__
 from .utils.logger import Logger
 
-SERVERS = {"main": "api.knowledgator.com",
+SERVERS = {"main": "https://api.knowledgator.com",
            "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
            "extract-it-rapidapi": "extract-it.p.rapidapi.com",
            "instruct-it-rapidapi": "instruct-it.p.rapidapi.com",

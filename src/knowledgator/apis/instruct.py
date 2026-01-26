@@ -29,7 +29,7 @@ class InstructAPI(BaseAPI):
     and output type hint, and returns a JSON-serializable object.
     """
 
-    PATH = '/v1/instruct-it'
+    PATH = '/instruct/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = InstructEndpointsConfig()

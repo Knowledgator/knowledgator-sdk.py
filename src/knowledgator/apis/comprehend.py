@@ -23,7 +23,7 @@ class ComprehendAPI(BaseAPI):
     """
     ComprehendAPI - zero-shot classification API service,"""
 
-    PATH = '/comprehend-it/'
+    PATH = '/comprehend/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ComprehendEndpointsConfig()

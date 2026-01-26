@@ -27,7 +27,7 @@ def test_knowledgator_init_defaults(mock_clients):
     kg = Knowledgator()
     
     assert kg.configs.server == "main"
-    assert kg.configs.server_config.servers["main"] == "api.knowledgator.com"
+    assert kg.configs.server_config.servers["main"] == "https://api.knowledgator.com"
     assert kg.configs.client is not None
     assert kg.configs.async_client is not None
     assert kg.configs.client_supplied is False

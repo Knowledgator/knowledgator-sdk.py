@@ -23,15 +23,15 @@ from pydantic import ValidationError as PydanticValidationError
 
 @dataclass
 class ExtractEndpointsConfig(EndpointsConfig):
-    main: str = "general"
-    relations: str = "relation-extraction"
-    summary: str = "summarization"
+    main: str = ""
+    relations: str = "relations"
+    summary: str = "summary"
 
 class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
 
-    PATH = '/extract-it/'
+    PATH = '/extract/'
     METHOD = 'POST'
     CONTENT_TYPE = 'application/json'
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
