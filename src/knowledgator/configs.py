@@ -12,7 +12,7 @@ from .version import __version__
 from .utils.logger import Logger
 
 SERVERS = {
-    "main": "https://api.knowledgator.com",
+    "main": "api.knowledgator.com",
     "comprehend-it-rapidapi": "comprehend-it.p.rapidapi.com",
     "extract-it-rapidapi": "extract-it.p.rapidapi.com",
     "instruct-it-rapidapi": "instruct-it.p.rapidapi.com",
@@ -20,9 +20,7 @@ SERVERS = {
 
 
 DEFAULT_UA = (
-    lambda: f"knowledgator-python/{__version__} "
-    f"({platform.system()} {platform.release()}; "
-    f"{platform.machine()})"
+    lambda: f"knowledgator-python/{__version__} ({platform.system()} {platform.release()}; {platform.machine()})"
 )
 
 
