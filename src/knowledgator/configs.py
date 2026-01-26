@@ -50,7 +50,7 @@ def _default_servers() -> Dict[str, str]:
             return json.loads(env)
         except (ValueError, TypeError):
             pass
-    return SERVERS
+    return SERVERS.copy()  # Return a copy to prevent mutation of the global dict
 
 
 @dataclass(slots=True)
@@ -70,7 +70,8 @@ class ServersConfigs:
 
     def headers(self, name: Optional[str] = None) -> Dict[str, str]:
         """Return the header dict for a server alias (may be empty)."""
-        return (self.base_headers or {}).get(self.base_server, {})
+        server_name = name if name is not None else self.base_server
+        return (self.base_headers or {}).get(server_name, {})
 
 
 @dataclass(slots=True)
