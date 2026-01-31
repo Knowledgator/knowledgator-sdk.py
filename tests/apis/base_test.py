@@ -172,7 +172,7 @@ def test_instruct_defaults():
     api = InstructAPI(configs)
     assert api.PATH == "/instruct/"
     assert api.METHOD == "POST"
-    assert api.CONTENT_TYPE == "application/json"
+    assert api.CONTENT_TYPE == "multipart/form-data"
     assert isinstance(api.ENDPOINTS_CONFIG, InstructEndpointsConfig)
     assert api.ENDPOINTS_CONFIG.main == ""
 

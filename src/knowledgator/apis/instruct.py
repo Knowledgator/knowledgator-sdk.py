@@ -7,7 +7,6 @@ import httpx
 from .base import BaseAPI, EndpointsConfig
 from ..exceptions import BadRequest, ServerError, TransportTimeout, ConnectionFailure, from_http_response
 from ..models.common import FileMetadata
-from ..models.inputs import InstructRequest
 from ..models.outputs import InstructResults
 
 
@@ -26,34 +25,9 @@ class InstructAPI(BaseAPI):
 
     PATH = "/instruct/"
     METHOD = "POST"
-    CONTENT_TYPE = "application/json"
+    CONTENT_TYPE = "multipart/form-data"
     ENDPOINTS_CONFIG = InstructEndpointsConfig()
     SUCCESS_STATUS = "ok"
-
-    def _build_prompt_context(
-        self,
-        text: str,
-        template: Optional[str],
-        files: Optional[List[FileMetadata]],
-        output_type: Optional[str],
-    ) -> dict[str, Any]:
-        """Build the context dictionary for the prompt."""
-        context: dict[str, Any] = {"instruction": text}
-
-        if template is not None:
-            try:
-                parsed_template = json.loads(template)
-                context["template"] = parsed_template
-            except json.JSONDecodeError as exc:
-                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
-
-        if files:
-            context["files"] = [{"name": f.name, "has_content": f.content is not None} for f in files]
-
-        if output_type:
-            context["output_type"] = output_type
-
-        return context
 
     def _parse_response(self, raw: dict[str, Any]) -> InstructResults:
         """Parse the API response into InstructResults."""
@@ -103,18 +77,33 @@ class InstructAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error or invalid response.
         """
+        # Validate template JSON if provided
         if template is not None:
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
                 raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
 
-        body = InstructRequest(
-            text=text,
-            template=template,
-            files=files,
-            output_type=output_type,
-        )
+        # Build form data payload
+        data_payload = {"text": text}
+
+        if template is not None:
+            data_payload["template"] = template
+
+        if output_type is not None:
+            data_payload["output_type"] = output_type
+
+        # Build filesmetadata list (names of all files)
+        if files:
+            filesmetadata = [f.name for f in files]
+            data_payload["filesmetadata"] = json.dumps(filesmetadata)
+
+        # Build files payload (only files with content)
+        files_payload = None
+        if files:
+            files_with_content = [f for f in files if f.content is not None]
+            if files_with_content:
+                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
         request = self._make_request(
@@ -122,9 +111,10 @@ class InstructAPI(BaseAPI):
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            data_body=data_payload,
+            files=files_payload,
             headers=http_headers,
-            accept=self.CONTENT_TYPE,
+            accept="application/json",  # We accept JSON response
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )
@@ -202,18 +192,33 @@ class InstructAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error or invalid response.
         """
+        # Validate template JSON if provided
         if template is not None:
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
                 raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
 
-        body = InstructRequest(
-            text=text,
-            template=template,
-            files=files,
-            output_type=output_type,
-        )
+        # Build form data payload
+        data_payload = {"text": text}
+
+        if template is not None:
+            data_payload["template"] = template
+
+        if output_type is not None:
+            data_payload["output_type"] = output_type
+
+        # Build filesmetadata list (names of all files)
+        if files:
+            filesmetadata = [f.name for f in files]
+            data_payload["filesmetadata"] = json.dumps(filesmetadata)
+
+        # Build files payload (only files with content)
+        files_payload = None
+        if files:
+            files_with_content = [f for f in files if f.content is not None]
+            if files_with_content:
+                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
         request = self._make_request(
@@ -221,9 +226,10 @@ class InstructAPI(BaseAPI):
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            data_body=data_payload,
+            files=files_payload,
             headers=http_headers,
-            accept=self.CONTENT_TYPE,
+            accept="application/json",  # We accept JSON response
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )

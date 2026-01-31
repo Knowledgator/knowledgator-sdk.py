@@ -140,12 +140,25 @@ class BaseAPI:
             extensions["_body_kind"] = body_kind
             extensions["_body_value"] = data_body
 
+        # For multipart/form-data, we can have both data and files
         if files is not None:
-            body_kind = "files"
-            extensions["_body_kind"] = body_kind
-            extensions["_body_value"] = files
+            if body_kind == "data":
+                # Multipart: both data and files
+                body_kind = "multipart"
+                extensions["_body_kind"] = body_kind
+                extensions["_data_value"] = data_body
+                extensions["_files_value"] = files
+            else:
+                # Files only
+                body_kind = "files"
+                extensions["_body_kind"] = body_kind
+                extensions["_body_value"] = files
 
-        body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
+        # For multipart, don't pass anything to httpx.Request, handle in send()
+        if body_kind == "multipart":
+            body_kwargs = {}
+        else:
+            body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
 
         req = httpx.Request(
             method=method,
@@ -191,6 +204,10 @@ class BaseAPI:
             body_params["data"] = body_value
         elif body_kind == "files":
             body_params["files"] = body_value
+        elif body_kind == "multipart":
+            # Both data and files for multipart/form-data
+            body_params["data"] = extensions.get("_data_value")
+            body_params["files"] = extensions.get("_files_value")
         else:
             body_params["data"] = request.content
 
@@ -237,6 +254,10 @@ class BaseAPI:
             body_params["data"] = body_value
         elif body_kind == "files":
             body_params["files"] = body_value
+        elif body_kind == "multipart":
+            # Both data and files for multipart/form-data
+            body_params["data"] = extensions.get("_data_value")
+            body_params["files"] = extensions.get("_files_value")
         else:
             body_params["data"] = request.content
 

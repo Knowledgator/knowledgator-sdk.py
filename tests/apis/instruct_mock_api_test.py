@@ -50,13 +50,14 @@ class TestInstructAPIMockRequests:
         # Verify request was made
         assert api.configs.client.request.called
 
-        # Verify the request was called with json parameter containing the text
+        # Verify the request was called with data parameter (multipart form-data)
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Summarize this policy in 3 bullet points."
-        assert "template" not in call_kwargs["json"]
-        assert "files" not in call_kwargs["json"]
-        assert "output_type" not in call_kwargs["json"]
+        assert "data" in call_kwargs
+        assert call_kwargs["data"]["text"] == "Summarize this policy in 3 bullet points."
+        assert "template" not in call_kwargs["data"]
+        assert "filesmetadata" not in call_kwargs["data"]
+        assert "output_type" not in call_kwargs["data"]
+        assert "files" not in call_kwargs  # No files in minimal request
 
         # Verify response
         assert result.outputs == "This is a simple text response"
@@ -87,12 +88,12 @@ class TestInstructAPIMockRequests:
         # Make request
         result = api.it(text="Analyze this policy document", template=template, output_type="json")
 
-        # Verify request body
+        # Verify request body (multipart form-data)
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Analyze this policy document"
-        assert call_kwargs["json"]["template"] == template
-        assert call_kwargs["json"]["output_type"] == "json"
+        assert "data" in call_kwargs
+        assert call_kwargs["data"]["text"] == "Analyze this policy document"
+        assert call_kwargs["data"]["template"] == template
+        assert call_kwargs["data"]["output_type"] == "json"
 
         # Verify response structure
         assert result.outputs["summary"] == "Policy covers data privacy and user rights"
@@ -110,22 +111,25 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        # Create file references
+        # Create file references (no content)
         files = [FileMetadata(name="file-id-1"), FileMetadata(name="file-id-2")]
 
         # Make request
         result = api.it(text="Compare these two documents", files=files)
 
-        # Verify request body includes file references
+        # Verify request body includes filesmetadata in data
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert "json" in call_kwargs
-        assert "files" in call_kwargs["json"]
-        assert len(call_kwargs["json"]["files"]) == 2
-        assert call_kwargs["json"]["files"][0]["name"] == "file-id-1"
-        assert call_kwargs["json"]["files"][1]["name"] == "file-id-2"
+        assert "data" in call_kwargs
+        assert "filesmetadata" in call_kwargs["data"]
+        filesmetadata = json.loads(call_kwargs["data"]["filesmetadata"])
+        assert len(filesmetadata) == 2
+        assert filesmetadata[0] == "file-id-1"
+        assert filesmetadata[1] == "file-id-2"
+        # No files parameter since no content
+        assert "files" not in call_kwargs
 
     def test_request_with_file_content(self, api):
-        """Test request with file content (content field excluded from JSON)."""
+        """Test request with file content transmitted via files parameter."""
         # Mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -140,6 +144,18 @@ class TestInstructAPIMockRequests:
 
         # Make request
         result = api.it(text="Process this document", files=files, output_type="list")
+
+        # Verify filesmetadata in data
+        call_kwargs = api.configs.client.request.call_args.kwargs
+        assert "data" in call_kwargs
+        filesmetadata = json.loads(call_kwargs["data"]["filesmetadata"])
+        assert filesmetadata == ["document.pdf"]
+
+        # Verify file content in files parameter
+        assert "files" in call_kwargs
+        assert "document.pdf" in call_kwargs["files"]
+        assert call_kwargs["files"]["document.pdf"][0] == "document.pdf"  # filename
+        assert call_kwargs["files"]["document.pdf"][1] == b"PDF binary content here"  # content
 
         # Verify response is a list
         assert isinstance(result.outputs, list)
@@ -267,7 +283,7 @@ class TestInstructAPIMockRequests:
         assert result.parsed is False
 
     def test_complete_request_all_fields(self, api):
-        """Test complete request with all optional fields populated."""
+        """Test complete request with all optional fields populated (mixed files)."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -279,6 +295,7 @@ class TestInstructAPIMockRequests:
 
         template = json.dumps({"analysis": "", "recommendations": []})
 
+        # Mixed: one file without content, one with content
         files = [FileMetadata(name="doc1.pdf"), FileMetadata(name="doc2.docx", content=b"content")]
 
         result = api.it(
@@ -290,13 +307,23 @@ class TestInstructAPIMockRequests:
             http_headers={"X-Custom-Header": "custom-value"},
         )
 
-        # Verify request structure
+        # Verify request structure (multipart)
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Analyze these documents comprehensively"
-        assert call_kwargs["json"]["template"] == template
-        assert len(call_kwargs["json"]["files"]) == 2
-        assert call_kwargs["json"]["output_type"] == "json"
+        assert "data" in call_kwargs
+        assert call_kwargs["data"]["text"] == "Analyze these documents comprehensively"
+        assert call_kwargs["data"]["template"] == template
+        assert call_kwargs["data"]["output_type"] == "json"
+
+        # Verify filesmetadata contains both files
+        filesmetadata = json.loads(call_kwargs["data"]["filesmetadata"])
+        assert len(filesmetadata) == 2
+        assert "doc1.pdf" in filesmetadata
+        assert "doc2.docx" in filesmetadata
+
+        # Verify only doc2.docx has content in files parameter
+        assert "files" in call_kwargs
+        assert "doc2.docx" in call_kwargs["files"]
+        assert "doc1.pdf" not in call_kwargs["files"]  # No content
 
         # Verify response
         assert result.outputs["analysis"] == "Complete analysis"
