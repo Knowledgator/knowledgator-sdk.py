@@ -4,7 +4,7 @@ import os
 import inspect
 from typing import Any, Dict, Optional
 
-from .apis import ExtractAPI, InstructAPI, ComprehendAPI, EndpointsConfig
+from .apis import ComprehendAPI, DatasetsAPI, EndpointsConfig, ExtractAPI, InstructAPI
 from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
 
 
@@ -12,6 +12,7 @@ class BaseKnowledgator:
     comprehend: ComprehendAPI
     extract: ExtractAPI
     instruct: InstructAPI
+    datasets: Optional[DatasetsAPI]
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
@@ -35,14 +36,18 @@ class BaseKnowledgator:
         comprehend_cfg: SDKConfigs,
         extract_cfg: SDKConfigs,
         instruct_cfg: SDKConfigs,
+        datasets_cfg: Optional[SDKConfigs] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
         self.comprehend = ComprehendAPI(comprehend_cfg, endpoints_config=comprehend_endpoints)
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
         self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
+        if datasets_cfg is not None:
+            self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -102,6 +107,7 @@ class Knowledgator(BaseKnowledgator):
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
@@ -145,9 +151,11 @@ class Knowledgator(BaseKnowledgator):
             comprehend_cfg=self.configs,
             extract_cfg=self.configs,
             instruct_cfg=self.configs,
+            datasets_cfg=self.configs,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
             instruct_endpoints=instruct_endpoints,
+            datasets_endpoints=datasets_endpoints,
         )
 
     def _get_base_headers(
