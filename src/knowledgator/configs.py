@@ -24,6 +24,13 @@ DEFAULT_UA = (
 )
 
 
+
+DEFAULT_UA = (
+    lambda: f"knowledgator-python/{__version__} "
+            f"({platform.system()} {platform.release()}; "
+            f"{platform.machine()})"
+)
+
 @dataclass(slots=True)
 class RetryPolicyConfigs:
     max_tries: int = 3

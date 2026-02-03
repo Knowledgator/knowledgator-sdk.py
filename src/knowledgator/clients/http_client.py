@@ -29,8 +29,7 @@ class BaseHttpClient:
 
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
-
-
+    
 class HttpClient(BaseHttpClient):
     def __init__(
         self,
