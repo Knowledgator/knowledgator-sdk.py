@@ -4,7 +4,14 @@ import os
 import inspect
 from typing import Any, Dict, Optional
 
-from .apis import ComprehendAPI, DatasetsAPI, EndpointsConfig, ExtractAPI, InstructAPI
+from .apis import (
+    ComprehendAPI,
+    DatasetsAPI,
+    EndpointsConfig,
+    ExtractAPI,
+    FinetuningAPI,
+    InstructAPI,
+)
 from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
 
 
@@ -13,6 +20,7 @@ class BaseKnowledgator:
     extract: ExtractAPI
     instruct: InstructAPI
     datasets: Optional[DatasetsAPI]
+    finetuning: Optional[FinetuningAPI]
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
@@ -26,7 +34,9 @@ class BaseKnowledgator:
         retry_config: Optional[RetryPolicyConfigs] = None,
     ):
         if retry_config is None:
-            self.retry_config = RetryPolicyConfigs(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay)
+            self.retry_config = RetryPolicyConfigs(
+                max_tries=max_tries, base_delay=base_delay, max_delay=max_delay
+            )
         else:
             self.retry_config = retry_config
 
@@ -37,17 +47,31 @@ class BaseKnowledgator:
         extract_cfg: SDKConfigs,
         instruct_cfg: SDKConfigs,
         datasets_cfg: Optional[SDKConfigs] = None,
+        finetuning_cfg: Optional[SDKConfigs] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
         datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
-        self.comprehend = ComprehendAPI(comprehend_cfg, endpoints_config=comprehend_endpoints)
+        self.comprehend = ComprehendAPI(
+            comprehend_cfg, endpoints_config=comprehend_endpoints
+        )
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
         self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
         if datasets_cfg is not None:
-            self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
+            self.datasets = DatasetsAPI(
+                datasets_cfg, endpoints_config=datasets_endpoints
+            )
+        else:
+            self.datasets = None
+        if finetuning_cfg is not None:
+            self.finetuning = FinetuningAPI(
+                finetuning_cfg, endpoints_config=finetuning_endpoints
+            )
+        else:
+            self.finetuning = None
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -108,6 +132,7 @@ class Knowledgator(BaseKnowledgator):
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
         datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
@@ -115,7 +140,12 @@ class Knowledgator(BaseKnowledgator):
         timeout_ms: Optional[int] = None,
         debug_logger: Any = None,
     ) -> None:
-        super().__init__(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay, retry_config=retry_config)
+        super().__init__(
+            max_tries=max_tries,
+            base_delay=base_delay,
+            max_delay=max_delay,
+            retry_config=retry_config,
+        )
 
         if api_key is None:
             api_key = os.getenv("KG_API_KEY")
@@ -129,7 +159,9 @@ class Knowledgator(BaseKnowledgator):
             if server_url is not None:
                 servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
+            base_headers = self._get_base_headers(
+                servers_configs, server_alias, api_key
+            )
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
@@ -152,14 +184,19 @@ class Knowledgator(BaseKnowledgator):
             extract_cfg=self.configs,
             instruct_cfg=self.configs,
             datasets_cfg=self.configs,
+            finetuning_cfg=self.configs,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
             instruct_endpoints=instruct_endpoints,
             datasets_endpoints=datasets_endpoints,
+            finetuning_endpoints=finetuning_endpoints,
         )
 
     def _get_base_headers(
-        self, servers_configs: ServersConfigs, server_alias: Optional[str] = None, api_key: Optional[str] = None
+        self,
+        servers_configs: ServersConfigs,
+        server_alias: Optional[str] = None,
+        api_key: Optional[str] = None,
     ) -> Dict[str, str]:
         """Generate base headers with proper API key."""
         base_headers: Dict[str, str] = {}
