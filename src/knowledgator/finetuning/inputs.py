@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, conint, constr
+from pydantic import Field, BaseModel, conint, constr
 
 from .common import ServiceType, TrainingStatus
 

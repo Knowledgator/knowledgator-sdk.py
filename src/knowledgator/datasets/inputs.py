@@ -2,9 +2,9 @@
 
 from typing import Optional
 
-from pydantic import BaseModel, Field, conint, constr
+from pydantic import Field, BaseModel, conint, constr
 
-from .common import DatasetFormat, DatasetStatus, ServiceType
+from .common import ServiceType, DatasetFormat, DatasetStatus
 
 
 class ListDatasetsRequest(BaseModel):

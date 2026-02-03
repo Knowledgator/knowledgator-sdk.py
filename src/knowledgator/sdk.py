@@ -5,12 +5,12 @@ import inspect
 from typing import Any, Dict, Optional
 
 from .apis import (
-    ComprehendAPI,
-    DatasetsAPI,
-    EndpointsConfig,
     ExtractAPI,
-    FinetuningAPI,
+    DatasetsAPI,
     InstructAPI,
+    ComprehendAPI,
+    FinetuningAPI,
+    EndpointsConfig,
 )
 from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
 

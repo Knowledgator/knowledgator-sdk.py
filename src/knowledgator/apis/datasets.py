@@ -1,21 +1,21 @@
-from typing import Any, BinaryIO, Mapping, Optional, Union
+from typing import Any, Union, Mapping, BinaryIO, Optional
 from dataclasses import dataclass
 
 import httpx
 
 from .base import BaseAPI, EndpointsConfig
-from ..exceptions import (
-    BadRequest,
-    ConnectionFailure,
-    ServerError,
-    TransportTimeout,
-    from_http_response,
-)
 from ..datasets import (
     Dataset,
-    DatasetCreationResponse,
-    ListDatasetsResponse,
     ListFormatsResponse,
+    ListDatasetsResponse,
+    DatasetCreationResponse,
+)
+from ..exceptions import (
+    BadRequest,
+    ServerError,
+    TransportTimeout,
+    ConnectionFailure,
+    from_http_response,
 )
 
 

@@ -1,19 +1,19 @@
 """Datasets module for the Knowledgator SDK."""
 
-from .common import DatasetFormat, DatasetStatus, ServiceType
+from .common import ServiceType, DatasetFormat, DatasetStatus
 from .inputs import (
-    CreateDatasetRequest,
-    ListDatasetsRequest,
     ListFormatsRequest,
+    ListDatasetsRequest,
+    CreateDatasetRequest,
     UpdateDatasetRequest,
     UploadDatasetRequest,
 )
 from .outputs import (
     Dataset,
-    DatasetCreationResponse,
     FormatTag,
-    ListDatasetsResponse,
     ListFormatsResponse,
+    ListDatasetsResponse,
+    DatasetCreationResponse,
 )
 
 __all__ = [

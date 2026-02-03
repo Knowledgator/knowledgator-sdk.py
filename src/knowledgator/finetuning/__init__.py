@@ -2,25 +2,25 @@
 
 from .common import ServiceType, TrainingStatus
 from .inputs import (
-    CreateBaseModelRequest,
     GetMetricsRequest,
     ListEventsRequest,
     ListModelsRequest,
     ListTrainingsRequest,
     StartTrainingRequest,
+    CreateBaseModelRequest,
 )
 from .outputs import (
-    ListEventsResponse,
-    ListMetricsResponse,
-    ListModelsResponse,
-    ListTagsResponse,
-    ListTrainingsResponse,
-    MetricDataPoint,
-    ObjectCreation,
     Tag,
     TrainingEvent,
     TrainingModel,
+    ObjectCreation,
     TrainingObject,
+    MetricDataPoint,
+    ListTagsResponse,
+    ListEventsResponse,
+    ListModelsResponse,
+    ListMetricsResponse,
+    ListTrainingsResponse,
 )
 
 __all__ = [

@@ -13,9 +13,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from knowledgator.apis.datasets import DatasetsAPI
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import BadRequest, ServerError
+from knowledgator.apis.datasets import DatasetsAPI
 from knowledgator.exceptions.base import ClientError
 
 
