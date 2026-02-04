@@ -17,6 +17,7 @@ from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import BadRequest, ServerError
 from knowledgator.apis.datasets import DatasetsAPI
 from knowledgator.exceptions.base import ClientError
+from knowledgator.datasets.common import DatasetStatus
 
 
 class TestDatasetsAPIMockRequests:
@@ -83,7 +84,12 @@ class TestDatasetsAPIMockRequests:
 
         # Make request with filters
         result = api.list(
-            offset=10, limit=50, name="test-dataset", type="text-classification", format="csv", status="ready"
+            offset=10,
+            limit=50,
+            name="test-dataset",
+            type="text-classification",
+            format="csv",
+            status=DatasetStatus.READY,
         )
 
         # Verify request was made
@@ -124,7 +130,7 @@ class TestDatasetsAPIMockRequests:
         # Verify response
         assert result.id == "ds-456"
         assert result.name == "new-dataset"
-        assert result.status == "pending"
+        assert result.status == DatasetStatus.PENDING
 
     def test_create_dataset_with_file(self, api):
         """Test creating a dataset with initial file upload."""
@@ -153,7 +159,7 @@ class TestDatasetsAPIMockRequests:
 
         # Verify response
         assert result.id == "ds-789"
-        assert result.status == "processing"
+        assert result.status == DatasetStatus.PROCESSING
 
     def test_get_dataset(self, api):
         """Test getting dataset details by ID."""
@@ -278,7 +284,7 @@ class TestDatasetsAPIMockRequests:
 
         # Verify response
         assert result.id == "ds-123"
-        assert result.status == "processing"
+        assert result.status == DatasetStatus.PROCESSING
 
     def test_list_formats(self, api):
         """Test listing available dataset formats."""
@@ -470,7 +476,7 @@ class TestDatasetsAPIAsyncMockRequests:
         result = await api.upload_async("ds-async-6", file=file_content)
 
         assert result.id == "ds-async-6"
-        assert result.status == "processing"
+        assert result.status == DatasetStatus.PROCESSING
 
     @pytest.mark.asyncio
     async def test_async_list_formats(self, api):
