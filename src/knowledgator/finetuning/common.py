@@ -14,5 +14,7 @@ class ServiceType(str, Enum):
 class TrainingStatus(str, Enum):
     """Training completion statuses."""
 
-    SUCCESSFUL = "successful"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    STOPPED = "stopped"
     FAILED = "failed"
