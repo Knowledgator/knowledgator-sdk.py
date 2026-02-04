@@ -1,39 +1,41 @@
-from typing import List, Optional, Dict, Mapping, Any
+from typing import Any, Dict, List, Mapping, Optional
 from dataclasses import dataclass
+
 import httpx
+from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
-from ..configs import RetryPolicyConfigs
-from ..utils.dictionaries_op import remove_none_from_dict
-from ..models.inputs import ExtractBaseRequest, ExtractRelationsRequest, ExtractSummaryRequest
-from ..models.outputs import (
-    ExtractBaseResults,
-    ExtractRelationsResults,
-    ExtractSummaryResults,
-    EntityResponse,
-    RelationResponse,
-)
 from ..exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
     from_http_response,
 )
-from pydantic import ValidationError as PydanticValidationError
+from ..models.inputs import ExtractBaseRequest, ExtractSummaryRequest, ExtractRelationsRequest
+from ..models.outputs import (
+    EntityResponse,
+    RelationResponse,
+    ExtractBaseResults,
+    ExtractSummaryResults,
+    ExtractRelationsResults,
+)
+from ..utils.dictionaries_op import remove_none_from_dict
+
 
 @dataclass
 class ExtractEndpointsConfig(EndpointsConfig):
-    main: str = "general"
-    relations: str = "relation-extraction"
-    summary: str = "summarization"
+    main: str = ""
+    relations: str = "relations"
+    summary: str = "summary"
+
 
 class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
 
-    PATH = '/extract-it/'
-    METHOD = 'POST'
-    CONTENT_TYPE = 'application/json'
+    PATH = "/extract/"
+    METHOD = "POST"
+    CONTENT_TYPE = "application/json"
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
 
     SUCCESS_STATUS = "ok"
@@ -132,7 +134,7 @@ class ExtractAPI(BaseAPI):
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
-    
+
     def it(
         self,
         text: str,
@@ -174,9 +176,7 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -188,7 +188,7 @@ class ExtractAPI(BaseAPI):
                 text_fallback=text,
                 labels_fallback=labels,
                 threshold_fallback=threshold,
-        )
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -243,9 +243,7 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -257,7 +255,7 @@ class ExtractAPI(BaseAPI):
                 text_fallback=text,
                 labels_fallback=labels,
                 threshold_fallback=threshold,
-        )        
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -270,7 +268,6 @@ class ExtractAPI(BaseAPI):
         if self._log:
             self._log.debug("ExtractAPI: extracted information successfully")
         return result_obj
-    
 
     def relations(
         self,
@@ -317,9 +314,7 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -391,9 +386,7 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -406,7 +399,7 @@ class ExtractAPI(BaseAPI):
                 entities_fallback=entities,
                 relations_fallback=relations,
                 threshold_fallback=threshold,
-            )        
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -460,18 +453,14 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(
-                raw, text_fallback=text, threshold_fallback=threshold
-            )
+            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -484,7 +473,7 @@ class ExtractAPI(BaseAPI):
         if self._log:
             self._log.debug("ExtractAPI: extracted summary successfully")
         return result_obj
-    
+
     async def summary_async(
         self,
         text: str,
@@ -525,18 +514,14 @@ class ExtractAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "ExtractAPI: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(
-                raw, text_fallback=text, threshold_fallback=threshold
-            )
+            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(

@@ -1,10 +1,13 @@
 from __future__ import annotations
+
 from typing import Any, Dict, Type
+
 
 class SDKError(Exception):
     """
     Root of *all* public exceptions raised by the client SDK.
     """
+
     def __init__(
         self,
         message: str,
@@ -52,6 +55,7 @@ class APIError(SDKError):
     All subclasses have `status_code` set.
     """
 
+
 class ClientError(APIError):
     """4xx family"""
 
@@ -59,9 +63,9 @@ class ClientError(APIError):
 class ServerError(APIError):
     """5xx family"""
 
+
 _STATUS_MAP: dict[int, Type[APIError]] = {
     cls.code: cls
-    for cls in APIError.__subclasses__()     # direct
-    for cls in cls.__subclasses__()          # one level deeper (Client/Server)
+    for cls in APIError.__subclasses__()  # direct
+    for cls in cls.__subclasses__()  # one level deeper (Client/Server)
 }
-

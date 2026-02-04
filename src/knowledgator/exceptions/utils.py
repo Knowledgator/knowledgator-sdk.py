@@ -1,4 +1,5 @@
-from .base import APIError, ClientError, ServerError, _STATUS_MAP
+from .base import _STATUS_MAP, APIError, ClientError, ServerError
+
 
 def from_http_response(resp) -> APIError:
     """

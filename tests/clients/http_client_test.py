@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import asyncio
+
 import httpx
 import pytest
 
-from knowledgator.clients.http_client import HttpClient, AsyncHttpClient   # ← change if needed
-from knowledgator.configs import RetryPolicyConfigs, ServersConfigs
+from knowledgator.configs import ServersConfigs, RetryPolicyConfigs
+from knowledgator.clients.http_client import HttpClient, AsyncHttpClient  # ← change if needed
 
 BASE_URL = ServersConfigs().servers["main"]
+
 
 def ok_transport(json_payload: dict[str, str] | None = None) -> httpx.MockTransport:
     return httpx.MockTransport(lambda r: httpx.Response(200, json=json_payload or {"ok": True}))

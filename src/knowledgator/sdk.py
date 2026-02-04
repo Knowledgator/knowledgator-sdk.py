@@ -1,37 +1,41 @@
 from __future__ import annotations
 
-from typing import Optional, Any, Dict
 import os
 import inspect
+from typing import Any, Dict, Optional
 
-from .apis import ComprehendAPI, ExtractAPI, EndpointsConfig
-from .configs import (
-    SDKConfigs,
-    ServersConfigs,
-    RetryPolicyConfigs,
-    SERVERS
+from .apis import (
+    ExtractAPI,
+    DatasetsAPI,
+    InstructAPI,
+    ComprehendAPI,
+    FinetuningAPI,
+    EndpointsConfig,
 )
+from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
+
 
 class BaseKnowledgator:
     comprehend: ComprehendAPI
     extract: ExtractAPI
+    instruct: InstructAPI
+    datasets: Optional[DatasetsAPI]
+    finetuning: Optional[FinetuningAPI]
     configs: SDKConfigs
 
     servers_cfg: ServersConfigs
     server_alias: str
 
     def __init__(
-        self, 
+        self,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
-        retry_config: Optional[RetryPolicyConfigs] = None
+        retry_config: Optional[RetryPolicyConfigs] = None,
     ):
         if retry_config is None:
             self.retry_config = RetryPolicyConfigs(
-                max_tries=max_tries,
-                base_delay=base_delay,
-                max_delay=max_delay
+                max_tries=max_tries, base_delay=base_delay, max_delay=max_delay
             )
         else:
             self.retry_config = retry_config
@@ -41,14 +45,33 @@ class BaseKnowledgator:
         *,
         comprehend_cfg: SDKConfigs,
         extract_cfg: SDKConfigs,
+        instruct_cfg: SDKConfigs,
+        datasets_cfg: Optional[SDKConfigs] = None,
+        finetuning_cfg: Optional[SDKConfigs] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
         self.comprehend = ComprehendAPI(
             comprehend_cfg, endpoints_config=comprehend_endpoints
         )
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
+        self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
+        if datasets_cfg is not None:
+            self.datasets = DatasetsAPI(
+                datasets_cfg, endpoints_config=datasets_endpoints
+            )
+        else:
+            self.datasets = None
+        if finetuning_cfg is not None:
+            self.finetuning = FinetuningAPI(
+                finetuning_cfg, endpoints_config=finetuning_endpoints
+            )
+        else:
+            self.finetuning = None
 
     @staticmethod
     def _is_closed(obj: Any) -> bool:
@@ -67,19 +90,19 @@ class BaseKnowledgator:
         if (
             client
             and not self.configs.async_client_supplied
-            and not self._is_closed(client)          # helper from previous fix
+            and not self._is_closed(client)  # helper from previous fix
         ):
-            result = client.aclose()                 # call it first
-            if inspect.isawaitable(result):          # only await real coroutines
+            result = client.aclose()  # call it first
+            if inspect.isawaitable(result):  # only await real coroutines
                 await result
 
-    async def __aenter__(self) -> "BaseKnowledgator":
+    async def __aenter__(self) -> BaseKnowledgator:
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> None:
         await self.aclose()
 
-    def __enter__(self) -> "BaseKnowledgator":
+    def __enter__(self) -> BaseKnowledgator:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:
@@ -93,6 +116,7 @@ class Knowledgator(BaseKnowledgator):
     >>> kg = Knowledgator(api_key="sk-...")
     >>> res = kg.comprehend.it("Kyiv is beautiful", ["geography", "sport"])
     """
+
     server_alias = "main"
 
     def __init__(
@@ -106,6 +130,9 @@ class Knowledgator(BaseKnowledgator):
         server_base_headers: Optional[Dict[str, str]] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
         max_tries: int = 3,
         base_delay: float = 0.25,
         max_delay: float = 10.0,
@@ -117,7 +144,7 @@ class Knowledgator(BaseKnowledgator):
             max_tries=max_tries,
             base_delay=base_delay,
             max_delay=max_delay,
-            retry_config=retry_config
+            retry_config=retry_config,
         )
 
         if api_key is None:
@@ -132,12 +159,14 @@ class Knowledgator(BaseKnowledgator):
             if server_url is not None:
                 servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
+            base_headers = self._get_base_headers(
+                servers_configs, server_alias, api_key
+            )
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
             servers_configs.base_headers[server_alias] = base_headers
-            
+
             self.configs = SDKConfigs(
                 client=client,
                 client_supplied=client is not None,
@@ -153,15 +182,21 @@ class Knowledgator(BaseKnowledgator):
         self._init_apis(
             comprehend_cfg=self.configs,
             extract_cfg=self.configs,
+            instruct_cfg=self.configs,
+            datasets_cfg=self.configs,
+            finetuning_cfg=self.configs,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            instruct_endpoints=instruct_endpoints,
+            datasets_endpoints=datasets_endpoints,
+            finetuning_endpoints=finetuning_endpoints,
         )
 
     def _get_base_headers(
-        self, 
+        self,
         servers_configs: ServersConfigs,
         server_alias: Optional[str] = None,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
     ) -> Dict[str, str]:
         """Generate base headers with proper API key."""
         base_headers: Dict[str, str] = {}
@@ -177,6 +212,7 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
 
     COMPREHEND_ALIAS = "comprehend-it-rapidapi"
     EXTRACT_ALIAS = "extract-it-rapidapi"
+    INSTRUCT_ALIAS = "instruct-it-rapidapi"
 
     def __init__(
         self,
@@ -185,8 +221,10 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
         configs: Optional[SDKConfigs] = None,
         comprehend_host: Optional[str] = None,
         extract_host: Optional[str] = None,
+        instruct_host: Optional[str] = None,
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
+        instruct_endpoints: Optional[EndpointsConfig] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
         timeout_ms: Optional[int] = None,
@@ -213,6 +251,14 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             "Content-Type": "application/json",
         }
 
+        instruct_host = instruct_host or SERVERS[self.INSTRUCT_ALIAS]
+        servers_configs.servers[self.INSTRUCT_ALIAS] = f"https://{instruct_host}"
+        servers_configs.base_headers[self.INSTRUCT_ALIAS] = {  # type: ignore[attr-defined]
+            "x-rapidapi-key": api_key,
+            "x-rapidapi-host": instruct_host,
+            "Content-Type": "application/json",
+        }
+
         if configs is None:
             common_configs = SDKConfigs(
                 client=client,
@@ -230,12 +276,15 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
 
         self.configs = common_configs
 
-        comprehend_cfg = common_configs.copy(server = self.COMPREHEND_ALIAS)
-        extract_cfg = common_configs.copy(server = self.EXTRACT_ALIAS)
+        comprehend_cfg = common_configs.copy(server=self.COMPREHEND_ALIAS)
+        extract_cfg = common_configs.copy(server=self.EXTRACT_ALIAS)
+        instruct_cfg = common_configs.copy(server=self.INSTRUCT_ALIAS)
 
         self._init_apis(
             comprehend_cfg=comprehend_cfg,
             extract_cfg=extract_cfg,
+            instruct_cfg=instruct_cfg,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
+            instruct_endpoints=instruct_endpoints,
         )
