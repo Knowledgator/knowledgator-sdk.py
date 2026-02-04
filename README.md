@@ -15,8 +15,12 @@ The Knowledgator Python SDK provides access to the Knowledgator APIs for zero-sh
 ### Available Models
 * `Comprehend-it`: An efficient and accurate zero-shot and few-shot classifier ideal for text.
 * `Extract-it`: Fast, interpretable, and accurate information extraction tool that efficiently handles different extraction tasks, like NER and relation extraction.
+* `Instruct-it`: Extraction of structured information from raw text based on provided schema.
 * `Link-it` (coming soon): Zero-shot entity-linking tool that supports entity extraction, disambiguation, and linking to custom databases.
-* `Instruct-it` (coming soon): Extraction of structured information from raw text based on provided schema.
+
+### Available Services
+* `Datasets`: Manage datasets for NER, text classification, and relation extraction.
+* `Fine-tuning`: Fine-tune models with your own datasets for improved performance.
 
 ## Documentation
 
@@ -137,6 +141,9 @@ asyncio.run(main())
 - [Information Extraction (Extract)](#information-extraction-extract)
 - [Relation Extraction](#relation-extraction)
 - [Summarization](#summarization)
+- [Structured Extraction (Instruct)](#structured-extraction-instruct)
+- [Dataset Management](#dataset-management)
+- [Fine-tuning](#fine-tuning)
 - [RapidAPI Variant](#rapidapi-variant)
 - [Available Resources and Operations](#available-resources-and-operations)
 - [Retries](#retries)
@@ -238,6 +245,167 @@ print(res)  # Outputs ExtractSummaryResults
 
 Asynchronous: Use `summary_async`.
 
+## Structured Extraction (Instruct)
+
+Use `instruct.it` for extracting structured information based on a schema.
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.instruct.it(
+    text="John Doe works at Acme Corp as a Software Engineer.",
+    template='{"name": "", "company": "", "position": ""}',
+    output_type="json"
+)
+
+print(res)  # Outputs InstructResults with structured data
+```
+
+Asynchronous version:
+
+```python
+# Asynchronous Example
+import asyncio
+from knowledgator import Knowledgator
+import os
+
+async def main():
+    kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+    res = await kg.instruct.it_async(
+        text="John Doe works at Acme Corp as a Software Engineer.",
+        template='{"name": "", "company": "", "position": ""}',
+        output_type="json"
+    )
+
+    print(res)
+
+asyncio.run(main())
+```
+
+## Dataset Management
+
+Manage datasets for training and fine-tuning models.
+
+### List Datasets
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.datasets.list(
+    offset=0,
+    limit=10,
+    type="ner"
+)
+
+print(res)  # Outputs ListDatasetsResponse
+```
+
+### Create Dataset
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.datasets.create(
+    name="My NER Dataset",
+    type="ner",
+    format="jsonl",
+    description="Dataset for named entity recognition"
+)
+
+print(res)  # Outputs DatasetCreationResponse
+```
+
+### Upload File to Dataset
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+with open("data.jsonl", "rb") as f:
+    res = kg.datasets.upload(dataset_id="dataset-id", file=f)
+
+print(res)  # Outputs DatasetCreationResponse
+```
+
+## Fine-tuning
+
+Fine-tune models with your own datasets.
+
+### Start Training
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.finetuning.start_training(
+    model_id="base-model-id",
+    dataset_id="dataset-id",
+    hyperparameters={
+        "epochs": 10,
+        "batch_size": 16,
+        "learning_rate": 0.0001
+    }
+)
+
+print(res)  # Outputs TrainingObject
+```
+
+### List Training Jobs
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.finetuning.list_trainings(
+    offset=0,
+    limit=10,
+    status="running"
+)
+
+print(res)  # Outputs ListTrainingsResponse
+```
+
+### Get Training Metrics
+
+```python
+# Synchronous Example
+from knowledgator import Knowledgator
+import os
+
+kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
+
+res = kg.finetuning.get_metrics(
+    training_id="training-id",
+    metric="loss",
+    offset=0,
+    limit=100
+)
+
+print(res)  # Outputs ListMetricsResponse
+```
+
 ## RapidAPI Variant
 
 For RapidAPI-hosted endpoints:
@@ -270,6 +438,53 @@ kg_rapid = KnowledgatorRapidAPI(api_key=os.getenv("RAPID_KG_API_KEY", ""))
 - `_parse_entities`: Parse entities into ExtractBaseResults.
 - `_parse_relations`: Parse relations into ExtractRelationsResults.
 - `_parse_summary`: Parse summary into ExtractSummaryResults.
+
+### InstructAPI
+
+- `it`: Structured information extraction.
+- `it_async`: Asynchronous structured information extraction.
+
+### DatasetsAPI
+
+- `list`: List datasets with optional filtering.
+- `list_async`: Asynchronous list datasets.
+- `create`: Create a new dataset.
+- `create_async`: Asynchronous create dataset.
+- `get`: Get dataset details by ID.
+- `get_async`: Asynchronous get dataset.
+- `update`: Update dataset metadata.
+- `update_async`: Asynchronous update dataset.
+- `delete`: Delete a dataset.
+- `delete_async`: Asynchronous delete dataset.
+- `upload`: Upload a file to an existing dataset.
+- `upload_async`: Asynchronous upload file.
+- `list_formats`: List available dataset formats.
+- `list_formats_async`: Asynchronous list formats.
+
+### FinetuningAPI
+
+- `create_base_model`: Create a new base model for training.
+- `create_base_model_async`: Asynchronous create base model.
+- `list_models`: List available base models.
+- `list_models_async`: Asynchronous list models.
+- `get_model`: Get model details by ID.
+- `get_model_async`: Asynchronous get model.
+- `list_model_types`: List available model types.
+- `list_model_types_async`: Asynchronous list model types.
+- `start_training`: Start a new training job.
+- `start_training_async`: Asynchronous start training.
+- `list_trainings`: List training jobs with optional filtering.
+- `list_trainings_async`: Asynchronous list trainings.
+- `get_training`: Get training job details by ID.
+- `get_training_async`: Asynchronous get training.
+- `delete_training`: Delete a training job.
+- `delete_training_async`: Asynchronous delete training.
+- `stop_training`: Stop a running training job.
+- `stop_training_async`: Asynchronous stop training.
+- `list_events`: List events for a training job.
+- `list_events_async`: Asynchronous list events.
+- `get_metrics`: Get training metrics for a specific metric type.
+- `get_metrics_async`: Asynchronous get metrics.
 
 ### Configurations
 
