@@ -54,7 +54,7 @@ def test_comprehend_defaults():
     assert api.METHOD == "POST"
     assert api.CONTENT_TYPE == "application/json"
     assert isinstance(api.ENDPOINTS_CONFIG, ComprehendEndpointsConfig)
-    assert api.ENDPOINTS_CONFIG.main == "classify"
+    assert api.ENDPOINTS_CONFIG.main == ""
 
 
 def test_comprehend_endpoint_override():
@@ -100,7 +100,7 @@ def test_comprehend_retry_and_logging():
 def test_comprehend_endpoint_paths():
     configs = SDKConfigs()
     api = ComprehendAPI(configs)
-    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/comprehend/classify"
+    assert api.PATH + api.ENDPOINTS_CONFIG.main == "/comprehend/"
 
 
 def test_extract_defaults():

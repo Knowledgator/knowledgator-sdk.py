@@ -34,9 +34,7 @@ class BaseKnowledgator:
         retry_config: Optional[RetryPolicyConfigs] = None,
     ):
         if retry_config is None:
-            self.retry_config = RetryPolicyConfigs(
-                max_tries=max_tries, base_delay=base_delay, max_delay=max_delay
-            )
+            self.retry_config = RetryPolicyConfigs(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay)
         else:
             self.retry_config = retry_config
 
@@ -55,21 +53,15 @@ class BaseKnowledgator:
         finetuning_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
-        self.comprehend = ComprehendAPI(
-            comprehend_cfg, endpoints_config=comprehend_endpoints
-        )
+        self.comprehend = ComprehendAPI(comprehend_cfg, endpoints_config=comprehend_endpoints)
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
         self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
         if datasets_cfg is not None:
-            self.datasets = DatasetsAPI(
-                datasets_cfg, endpoints_config=datasets_endpoints
-            )
+            self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
         else:
             self.datasets = None
         if finetuning_cfg is not None:
-            self.finetuning = FinetuningAPI(
-                finetuning_cfg, endpoints_config=finetuning_endpoints
-            )
+            self.finetuning = FinetuningAPI(finetuning_cfg, endpoints_config=finetuning_endpoints)
         else:
             self.finetuning = None
 
@@ -159,9 +151,7 @@ class Knowledgator(BaseKnowledgator):
             if server_url is not None:
                 servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(
-                servers_configs, server_alias, api_key
-            )
+            base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
             if server_base_headers:
                 base_headers.update(server_base_headers)
 
@@ -225,6 +215,8 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
         timeout_ms: Optional[int] = None,
@@ -259,6 +251,12 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             "Content-Type": "application/json",
         }
 
+        # Fallback to main server headers using the same API key
+        servers_configs.base_headers["main"] = {
+            "KnowledgatorAPI-Key": api_key,
+            "Content-Type": "application/json",
+        }
+
         if configs is None:
             common_configs = SDKConfigs(
                 client=client,
@@ -284,7 +282,12 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             comprehend_cfg=comprehend_cfg,
             extract_cfg=extract_cfg,
             instruct_cfg=instruct_cfg,
+            # Datasets and Finetuning are not available on RapidAPI, so we fallback to the main server
+            datasets_cfg=common_configs.copy(server="main"),
+            finetuning_cfg=common_configs.copy(server="main"),
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
             instruct_endpoints=instruct_endpoints,
+            datasets_endpoints=datasets_endpoints,
+            finetuning_endpoints=finetuning_endpoints,
         )

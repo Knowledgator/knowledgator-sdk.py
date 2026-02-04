@@ -67,6 +67,11 @@ class TestFinetuningAPIMockRequests:
         assert result.trainings[0].status == TrainingStatus.ACTIVE
         assert result.trainings[1].status == TrainingStatus.COMPLETED
 
+        # Verify request details
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert "/trainings" in str(kwargs["url"])
+
     def test_get_training_status(self, api):
         """Test getting a single training and verifying status."""
         mock_response = MagicMock()
@@ -86,6 +91,12 @@ class TestFinetuningAPIMockRequests:
 
         assert result.id == "ft-3"
         assert result.status == TrainingStatus.FAILED
+
+        # Verify request details
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        # Base path /trainings/ + {id}/
+        assert "/trainings/ft-3" in str(kwargs["url"])
 
     def test_stop_training(self, api):
         """Test stopping a training."""

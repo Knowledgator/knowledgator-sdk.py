@@ -149,7 +149,6 @@ class ComprehendAPI(BaseAPI):
         timeout_ms: int | None = None,
         http_headers: Mapping[str, str] | None = None,
     ) -> ComprehendResults:
-
         body = ComprehendRequest(
             text=text,
             labels=labels,
@@ -206,7 +205,6 @@ class ComprehendAPI(BaseAPI):
                 payload={"raw": raw},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
-
 
         if self._log:
             self._log.debug("ComprehendAPI: classified text successfully")
