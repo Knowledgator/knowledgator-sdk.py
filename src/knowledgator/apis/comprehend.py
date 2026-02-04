@@ -7,11 +7,9 @@ import httpx
 from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
-from ..configs import RetryPolicyConfigs
 from ..exceptions import ServerError, TransportTimeout, ConnectionFailure, from_http_response
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults, ComprehendResponse
-from ..utils.dictionaries_op import remove_none_from_dict
 
 
 @dataclass

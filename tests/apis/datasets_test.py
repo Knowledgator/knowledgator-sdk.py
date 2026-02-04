@@ -16,8 +16,8 @@ import pytest
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import BadRequest, ServerError
 from knowledgator.apis.datasets import DatasetsAPI
-from knowledgator.exceptions.base import ClientError
 from knowledgator.datasets.common import DatasetStatus
+from knowledgator.exceptions.base import ClientError
 
 
 class TestDatasetsAPIMockRequests:

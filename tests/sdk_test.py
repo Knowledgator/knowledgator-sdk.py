@@ -1,11 +1,10 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from knowledgator.sdk import Knowledgator, KnowledgatorRapidAPI
 from knowledgator.apis import (
-    EndpointsConfig,
     ExtractEndpointsConfig,
     InstructEndpointsConfig,
     ComprehendEndpointsConfig,

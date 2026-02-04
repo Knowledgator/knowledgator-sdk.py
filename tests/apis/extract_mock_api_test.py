@@ -11,10 +11,8 @@ verifying the complete API contract including:
 - Error scenarios
 """
 
-import json
 from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 
 from knowledgator.configs import SDKConfigs, ServersConfigs

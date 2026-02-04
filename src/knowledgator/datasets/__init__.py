@@ -17,20 +17,17 @@ from .outputs import (
 )
 
 __all__ = [
-    # Common
-    "DatasetFormat",
-    "DatasetStatus",
-    "ServiceType",
-    # Inputs
     "CreateDatasetRequest",
-    "ListDatasetsRequest",
-    "ListFormatsRequest",
-    "UpdateDatasetRequest",
-    "UploadDatasetRequest",
-    # Outputs
     "Dataset",
     "DatasetCreationResponse",
+    "DatasetFormat",
+    "DatasetStatus",
     "FormatTag",
+    "ListDatasetsRequest",
     "ListDatasetsResponse",
+    "ListFormatsRequest",
     "ListFormatsResponse",
+    "ServiceType",
+    "UpdateDatasetRequest",
+    "UploadDatasetRequest",
 ]

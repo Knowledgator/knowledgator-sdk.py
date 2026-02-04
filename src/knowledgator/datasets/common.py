@@ -4,7 +4,7 @@ from enum import Enum
 
 from ..common import ServiceType
 
-__all__ = ["ServiceType", "DatasetFormat", "DatasetStatus"]
+__all__ = ["DatasetFormat", "DatasetStatus", "ServiceType"]
 
 
 class DatasetFormat(str, Enum):

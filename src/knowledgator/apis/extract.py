@@ -19,7 +19,6 @@ from ..models.outputs import (
     ExtractSummaryResults,
     ExtractRelationsResults,
 )
-from ..utils.dictionaries_op import remove_none_from_dict
 
 
 @dataclass

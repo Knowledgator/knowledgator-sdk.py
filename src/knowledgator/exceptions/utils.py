@@ -3,8 +3,9 @@ from .base import _STATUS_MAP, APIError, ClientError, ServerError
 
 def from_http_response(resp) -> APIError:
     """
-    Turn an `httpx.Response` (or anything w/ .status_code, .json(), .text, .headers)
-    into the corresponding APIError subclass.
+    Turn an `httpx.Response` into the corresponding APIError subclass.
+
+    Accepts anything w/ .status_code, .json(), .text, .headers.
     """
     cls = _STATUS_MAP.get(resp.status_code)
     if cls is None:

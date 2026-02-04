@@ -198,7 +198,7 @@ class Knowledgator(BaseKnowledgator):
 
 
 class KnowledgatorRapidAPI(BaseKnowledgator):
-    """RapidAPI variant – separate hosts / headers for each low‑level API."""
+    """RapidAPI variant - separate hosts / headers for each low-level API."""
 
     COMPREHEND_ALIAS = "comprehend-it-rapidapi"
     EXTRACT_ALIAS = "extract-it-rapidapi"
@@ -264,7 +264,7 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
                 async_client=async_client,
                 async_client_supplied=async_client is not None,
                 debug_logger=debug_logger,
-                server=self.COMPREHEND_ALIAS,  # default – doesn't really matter
+                server=self.COMPREHEND_ALIAS,  # default - doesn't really matter
                 server_config=servers_configs,
                 retry_config=self.retry_config,
                 timeout_ms=timeout_ms,

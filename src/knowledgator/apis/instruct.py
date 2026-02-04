@@ -82,7 +82,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -137,7 +137,7 @@ class InstructAPI(BaseAPI):
 
         try:
             raw: dict[str, Any] = response.json()
-        except ValueError as exc:
+        except ValueError:
             raw_text = response.text
             if self._log:
                 self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")
@@ -197,7 +197,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template})
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -252,7 +252,7 @@ class InstructAPI(BaseAPI):
 
         try:
             raw: dict[str, Any] = response.json()
-        except ValueError as exc:
+        except ValueError:
             raw_text = response.text
             if self._log:
                 self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")

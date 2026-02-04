@@ -11,9 +11,8 @@ verifying the complete API contract including:
 """
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import httpx
 import pytest
 
 from knowledgator.configs import SDKConfigs, ServersConfigs
@@ -115,7 +114,7 @@ class TestInstructAPIMockRequests:
         files = [FileMetadata(name="file-id-1"), FileMetadata(name="file-id-2")]
 
         # Make request
-        result = api.it(text="Compare these two documents", files=files)
+        api.it(text="Compare these two documents", files=files)
 
         # Verify request body includes filesmetadata in data
         call_kwargs = api.configs.client.request.call_args.kwargs
