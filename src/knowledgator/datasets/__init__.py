@@ -9,8 +9,10 @@ from .inputs import (
     UploadDatasetRequest,
 )
 from .outputs import (
+    Data,
     Dataset,
     FormatTag,
+    ListDataResponse,
     ListFormatsResponse,
     ListDatasetsResponse,
     DatasetCreationResponse,
@@ -18,11 +20,13 @@ from .outputs import (
 
 __all__ = [
     "CreateDatasetRequest",
+    "Data",
     "Dataset",
     "DatasetCreationResponse",
     "DatasetFormat",
     "DatasetStatus",
     "FormatTag",
+    "ListDataResponse",
     "ListDatasetsRequest",
     "ListDatasetsResponse",
     "ListFormatsRequest",

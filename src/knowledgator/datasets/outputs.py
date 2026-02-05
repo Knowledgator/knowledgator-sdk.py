@@ -16,7 +16,9 @@ class Dataset(BaseModel):
     description: Optional[str] = Field(default=None, description="Dataset description")
     created_at: str = Field(..., description="Creation timestamp")
     updated_at: str = Field(..., description="Last update timestamp")
-    file_count: Optional[int] = Field(default=None, description="Number of files in dataset")
+    file_count: Optional[int] = Field(
+        default=None, description="Number of files in dataset"
+    )
     total_size: Optional[int] = Field(default=None, description="Total size in bytes")
 
 
@@ -52,5 +54,29 @@ class ListFormatsResponse(BaseModel):
 
     formats: List[FormatTag] = Field(..., description="List of available formats")
     total: int = Field(..., description="Total number of formats")
+    offset: int = Field(..., description="Current pagination offset")
+    limit: int = Field(..., description="Current pagination limit")
+
+
+class Data(BaseModel):
+    """Raw data object with full details."""
+
+    id: str = Field(..., description="Unique data identifier")
+    name: str = Field(..., description="Data name")
+    type: str = Field(..., description="Service type")
+    format: str = Field(..., description="Data format")
+    # status: str = Field(..., description="Data status") # Raw data might not have status like datasets
+    description: Optional[str] = Field(default=None, description="Data description")
+    created_at: str = Field(..., description="Creation timestamp")
+    updated_at: str = Field(..., description="Last update timestamp")
+    file_count: Optional[int] = Field(default=None, description="Number of files")
+    total_size: Optional[int] = Field(default=None, description="Total size in bytes")
+
+
+class ListDataResponse(BaseModel):
+    """Response model for listing raw data."""
+
+    data: List[Data] = Field(..., description="List of raw data")
+    total: int = Field(..., description="Total number of data items matching filters")
     offset: int = Field(..., description="Current pagination offset")
     limit: int = Field(..., description="Current pagination limit")
