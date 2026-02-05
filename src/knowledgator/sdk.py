@@ -282,12 +282,35 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             comprehend_cfg=comprehend_cfg,
             extract_cfg=extract_cfg,
             instruct_cfg=instruct_cfg,
-            # Datasets and Finetuning are not available on RapidAPI, so we fallback to the main server
-            datasets_cfg=common_configs.copy(server="main"),
-            finetuning_cfg=common_configs.copy(server="main"),
+            # Datasets and Finetuning are not available on RapidAPI
+            datasets_cfg=None,
+            finetuning_cfg=None,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
             instruct_endpoints=instruct_endpoints,
             datasets_endpoints=datasets_endpoints,
             finetuning_endpoints=finetuning_endpoints,
+        )
+
+        # Force unavailable services to raise error on access
+        self.datasets = UnavailableRapidAPIService("Datasets API")  # type: ignore
+        self.finetuning = UnavailableRapidAPIService("Finetuning API")  # type: ignore
+
+
+class UnavailableRapidAPIService:
+    """Helper to raise error when accessing services not available on RapidAPI."""
+
+    def __init__(self, service_name: str):
+        self._service_name = service_name
+
+    def __getattr__(self, name: str):
+        raise NotImplementedError(
+            f"{self._service_name} is not available via RapidAPI. "
+            "Please use the main Knowledgator API for this service."
+        )
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(
+            f"{self._service_name} is not available via RapidAPI. "
+            "Please use the main Knowledgator API for this service."
         )
