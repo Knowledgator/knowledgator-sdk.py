@@ -19,8 +19,9 @@ The Knowledgator Python SDK provides access to the Knowledgator APIs for zero-sh
 * `Link-it` (coming soon): Zero-shot entity-linking tool that supports entity extraction, disambiguation, and linking to custom databases.
 
 ### Available Services
-* `Datasets`: Manage datasets for NER, text classification, and relation extraction.
+* `Datasets`: Manage datasets and raw data for NER, text classification, and relation extraction.
 * `Fine-tuning`: Fine-tune models with your own datasets for improved performance.
+* `Open Models`: Access finetuned or custom models using dynamic identifiers.
 
 ## Documentation
 
@@ -143,7 +144,9 @@ asyncio.run(main())
 - [Summarization](#summarization)
 - [Structured Extraction (Instruct)](#structured-extraction-instruct)
 - [Dataset Management](#dataset-management)
+- [Raw Data Management](#raw-data-management)
 - [Fine-tuning](#fine-tuning)
+- [Open Models](#open-models)
 - [RapidAPI Variant](#rapidapi-variant)
 - [Available Resources and Operations](#available-resources-and-operations)
 - [Retries](#retries)
@@ -343,6 +346,29 @@ with open("data.jsonl", "rb") as f:
 print(res)  # Outputs DatasetCreationResponse
 ```
 
+## Raw Data Management
+
+Raw data entries can be managed similarly to datasets using the `datasets` API.
+
+### List Raw Data
+
+```python
+res = kg.datasets.list_data(limit=10)
+print(res)  # Outputs ListDataResponse
+```
+
+### Create Raw Data
+
+```python
+res = kg.datasets.create_data(
+    name="My Raw Data",
+    type="ner",
+    format="jsonl",
+    file=open("raw_data.jsonl", "rb")
+)
+print(res)
+```
+
 ## Fine-tuning
 
 Fine-tune models with your own datasets.
@@ -404,6 +430,24 @@ res = kg.finetuning.get_metrics(
 )
 
 print(res)  # Outputs ListMetricsResponse
+
+## Open Models
+
+Interact with custom or finetuned models using dynamic model identifiers.
+
+```python
+# Initialize a model client
+model = kg.model("your-model-id")
+
+# Generic prediction
+response = model.predict({"input": "text to process"})
+
+# Shorthand for method-based inference
+generator = kg.model("your-model-id", method="generate")
+response = generator.predict({"prompt": "Tell me a story."})
+
+# Explicitly call a specific method
+result = generator.call("summarize", {"text": "..."})
 ```
 
 ## RapidAPI Variant
