@@ -168,7 +168,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
@@ -243,7 +243,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
@@ -322,7 +322,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
@@ -402,7 +402,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
@@ -477,7 +477,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
@@ -548,7 +548,7 @@ class ExtractAPI(BaseAPI):
         if http_headers:
             headers.update(http_headers)
         if model_id:
-            headers["Model-Id"] = model_id
+            headers["KnowledgatorAPI-Model-ID"] = model_id
 
         request = self._make_request(
             method=self.METHOD,
