@@ -11,7 +11,11 @@ from ..exceptions import (
     ConnectionFailure,
     from_http_response,
 )
-from ..models.inputs import ExtractBaseRequest, ExtractSummaryRequest, ExtractRelationsRequest
+from ..models.inputs import (
+    ExtractBaseRequest,
+    ExtractSummaryRequest,
+    ExtractRelationsRequest,
+)
 from ..models.outputs import (
     EntityResponse,
     RelationResponse,
@@ -32,7 +36,7 @@ class ExtractAPI(BaseAPI):
     """
     ExtractAPI - zero-shot NER and information extraction API service."""
 
-    PATH = "/extract/"
+    PATH = "/inference/extract/"
     METHOD = "POST"
     CONTENT_TYPE = "application/json"
     ENDPOINTS_CONFIG = ExtractEndpointsConfig()
@@ -69,7 +73,9 @@ class ExtractAPI(BaseAPI):
             labels=raw.get("labels", labels_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -105,7 +111,9 @@ class ExtractAPI(BaseAPI):
             relations=raw.get("relations", relations_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -129,7 +137,9 @@ class ExtractAPI(BaseAPI):
             input_text=raw.get("input_text", text_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -140,6 +150,7 @@ class ExtractAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -152,13 +163,20 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -207,6 +225,7 @@ class ExtractAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -219,13 +238,20 @@ class ExtractAPI(BaseAPI):
             prompt=prompt,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -276,6 +302,7 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -290,13 +317,20 @@ class ExtractAPI(BaseAPI):
             rules=rules,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -348,6 +382,7 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -362,13 +397,20 @@ class ExtractAPI(BaseAPI):
             rules=rules,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -417,6 +459,7 @@ class ExtractAPI(BaseAPI):
         text: str,
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -429,13 +472,20 @@ class ExtractAPI(BaseAPI):
         )
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -459,7 +509,9 @@ class ExtractAPI(BaseAPI):
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -478,6 +530,7 @@ class ExtractAPI(BaseAPI):
         text: str,
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -490,13 +543,20 @@ class ExtractAPI(BaseAPI):
         )
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -520,7 +580,9 @@ class ExtractAPI(BaseAPI):
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(

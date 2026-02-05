@@ -1,4 +1,5 @@
 import pytest
+
 from knowledgator.sdk import KnowledgatorRapidAPI
 
 

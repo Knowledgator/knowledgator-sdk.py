@@ -7,7 +7,12 @@ import httpx
 from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
-from ..exceptions import ServerError, TransportTimeout, ConnectionFailure, from_http_response
+from ..exceptions import (
+    ServerError,
+    TransportTimeout,
+    ConnectionFailure,
+    from_http_response,
+)
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults, ComprehendResponse
 
@@ -21,7 +26,7 @@ class ComprehendAPI(BaseAPI):
     """
     ComprehendAPI - zero-shot classification API service,"""
 
-    PATH = "/comprehend/"
+    PATH = "/inference/comprehend/"
     METHOD = "POST"
     CONTENT_TYPE = "application/json"
     ENDPOINTS_CONFIG = ComprehendEndpointsConfig()
@@ -58,7 +63,10 @@ class ComprehendAPI(BaseAPI):
             input_text=raw.get("input_text", text_fallback),
             labels=raw.get("labels", labels_fallback),
             threshold=raw.get(
-                "threshold", threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD
+                "threshold",
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -70,6 +78,7 @@ class ComprehendAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         examples: Optional[List[Dict[str, str]]] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -82,13 +91,20 @@ class ComprehendAPI(BaseAPI):
             examples=examples,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -122,7 +138,10 @@ class ComprehendAPI(BaseAPI):
 
         try:
             result_obj = self.parse_labels(
-                raw, text_fallback=text, labels_fallback=labels, threshold_fallback=threshold
+                raw,
+                text_fallback=text,
+                labels_fallback=labels,
+                threshold_fallback=threshold,
             )
         except (ValueError, PydanticValidationError) as exc:
             raise ServerError(
@@ -142,6 +161,7 @@ class ComprehendAPI(BaseAPI):
         labels: list[str],
         threshold: float | None = None,
         examples: list[dict[str, str]] | None = None,
+        model_id: str | None = None,
         url_variables: Mapping[str, Any] | None = None,
         server_url: str | None = None,
         timeout_ms: int | None = None,
@@ -154,13 +174,20 @@ class ComprehendAPI(BaseAPI):
             examples=examples,
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
             json_body=body.model_dump(exclude_none=True),
-            headers=http_headers,
+            headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -194,7 +221,10 @@ class ComprehendAPI(BaseAPI):
 
         try:
             result_obj = self.parse_labels(
-                raw, text_fallback=text, labels_fallback=labels, threshold_fallback=threshold
+                raw,
+                text_fallback=text,
+                labels_fallback=labels,
+                threshold_fallback=threshold,
             )
         except (ValueError, PydanticValidationError) as exc:
             raise ServerError(

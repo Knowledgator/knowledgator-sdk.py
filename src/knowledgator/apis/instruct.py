@@ -5,7 +5,13 @@ from dataclasses import dataclass
 import httpx
 
 from .base import BaseAPI, EndpointsConfig
-from ..exceptions import BadRequest, ServerError, TransportTimeout, ConnectionFailure, from_http_response
+from ..exceptions import (
+    BadRequest,
+    ServerError,
+    TransportTimeout,
+    ConnectionFailure,
+    from_http_response,
+)
 from ..models.common import FileMetadata
 from ..models.outputs import InstructResults
 
@@ -23,7 +29,7 @@ class InstructAPI(BaseAPI):
     and output type hint, and returns a JSON-serializable object.
     """
 
-    PATH = "/instruct/"
+    PATH = "/inference/instruct/"
     METHOD = "POST"
     CONTENT_TYPE = "multipart/form-data"
     ENDPOINTS_CONFIG = InstructEndpointsConfig()
@@ -50,6 +56,7 @@ class InstructAPI(BaseAPI):
         template: Optional[str] = None,
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -63,6 +70,7 @@ class InstructAPI(BaseAPI):
             template: JSON string representing a structure the model should fill.
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
+            model_id: Optional model ID for using a specific model.
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
@@ -82,7 +90,9 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
+                raise BadRequest(
+                    f"Invalid JSON in template: {exc}", payload={"template": template}
+                ) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -103,9 +113,18 @@ class InstructAPI(BaseAPI):
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
-                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
+                files_payload = {
+                    f.name: (f.name, f.content) for f in files_with_content
+                }
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -113,7 +132,7 @@ class InstructAPI(BaseAPI):
             url_variables=url_variables,
             data_body=data_payload,
             files=files_payload,
-            headers=http_headers,
+            headers=headers,
             accept="application/json",  # We accept JSON response
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -140,7 +159,9 @@ class InstructAPI(BaseAPI):
         except ValueError:
             raw_text = response.text
             if self._log:
-                self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")
+                self._log.debug(
+                    "InstructAPI: Non-JSON response, wrapping as string output"
+                )
             return InstructResults.from_model_response(raw_text)
 
         try:
@@ -165,6 +186,7 @@ class InstructAPI(BaseAPI):
         template: Optional[str] = None,
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
+        model_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -178,6 +200,7 @@ class InstructAPI(BaseAPI):
             template: JSON string representing a structure the model should fill.
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
+            model_id: Optional model ID for using a specific model.
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
@@ -197,7 +220,9 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
+                raise BadRequest(
+                    f"Invalid JSON in template: {exc}", payload={"template": template}
+                ) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -218,9 +243,18 @@ class InstructAPI(BaseAPI):
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
-                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
+                files_payload = {
+                    f.name: (f.name, f.content) for f in files_with_content
+                }
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
+
+        headers = {}
+        if http_headers:
+            headers.update(http_headers)
+        if model_id:
+            headers["Model-Id"] = model_id
+
         request = self._make_request(
             method=self.METHOD,
             path=path,
@@ -228,7 +262,7 @@ class InstructAPI(BaseAPI):
             url_variables=url_variables,
             data_body=data_payload,
             files=files_payload,
-            headers=http_headers,
+            headers=headers,
             accept="application/json",  # We accept JSON response
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -255,7 +289,9 @@ class InstructAPI(BaseAPI):
         except ValueError:
             raw_text = response.text
             if self._log:
-                self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")
+                self._log.debug(
+                    "InstructAPI: Non-JSON response, wrapping as string output"
+                )
             return InstructResults.from_model_response(raw_text)
 
         try:
