@@ -10,6 +10,8 @@ from .apis import (
     InstructAPI,
     ComprehendAPI,
     FinetuningAPI,
+    FinetuningAPI,
+    OpenModelAPI,
     EndpointsConfig,
 )
 from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
@@ -206,9 +208,19 @@ class Knowledgator(BaseKnowledgator):
             base_headers.update(servers_configs.base_headers.get(server_alias, {}))
         return base_headers
 
+    def model(self, model_id: str, method: Optional[str] = None) -> OpenModelAPI:
+        """
+        Create a client for an Open Model (dynamic model ID).
+
+        :param model_id: The ID of the model to access (e.g. 'my-finetuned-model')
+        :param method: Optional method name to use for predictions (e.g. 'generate')
+        :return: An initialized OpenModelAPI instance.
+        """
+        return OpenModelAPI(self.configs, model_id=model_id, method=method)
+
 
 class KnowledgatorRapidAPI(BaseKnowledgator):
-    """RapidAPI variant – separate hosts / headers for each low‑level API."""
+    """RapidAPI variant - separate hosts / headers for each low-level API."""
 
     COMPREHEND_ALIAS = "comprehend-it-rapidapi"
     EXTRACT_ALIAS = "extract-it-rapidapi"
@@ -225,6 +237,8 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
         comprehend_endpoints: Optional[EndpointsConfig] = None,
         extract_endpoints: Optional[EndpointsConfig] = None,
         instruct_endpoints: Optional[EndpointsConfig] = None,
+        datasets_endpoints: Optional[EndpointsConfig] = None,
+        finetuning_endpoints: Optional[EndpointsConfig] = None,
         client: Optional[Any] = None,
         async_client: Optional[Any] = None,
         timeout_ms: Optional[int] = None,
@@ -259,6 +273,12 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             "Content-Type": "application/json",
         }
 
+        # Fallback to main server headers using the same API key
+        servers_configs.base_headers["main"] = {
+            "KnowledgatorAPI-Key": api_key,
+            "Content-Type": "application/json",
+        }
+
         if configs is None:
             common_configs = SDKConfigs(
                 client=client,
@@ -266,7 +286,7 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
                 async_client=async_client,
                 async_client_supplied=async_client is not None,
                 debug_logger=debug_logger,
-                server=self.COMPREHEND_ALIAS,  # default – doesn't really matter
+                server=self.COMPREHEND_ALIAS,  # default - doesn't really matter
                 server_config=servers_configs,
                 retry_config=self.retry_config,
                 timeout_ms=timeout_ms,
@@ -284,7 +304,35 @@ class KnowledgatorRapidAPI(BaseKnowledgator):
             comprehend_cfg=comprehend_cfg,
             extract_cfg=extract_cfg,
             instruct_cfg=instruct_cfg,
+            # Datasets and Finetuning are not available on RapidAPI
+            datasets_cfg=None,
+            finetuning_cfg=None,
             comprehend_endpoints=comprehend_endpoints,
             extract_endpoints=extract_endpoints,
             instruct_endpoints=instruct_endpoints,
+            datasets_endpoints=datasets_endpoints,
+            finetuning_endpoints=finetuning_endpoints,
+        )
+
+        # Force unavailable services to raise error on access
+        self.datasets = UnavailableRapidAPIService("Datasets API")  # type: ignore
+        self.finetuning = UnavailableRapidAPIService("Finetuning API")  # type: ignore
+
+
+class UnavailableRapidAPIService:
+    """Helper to raise error when accessing services not available on RapidAPI."""
+
+    def __init__(self, service_name: str):
+        self._service_name = service_name
+
+    def __getattr__(self, name: str):
+        raise NotImplementedError(
+            f"{self._service_name} is not available via RapidAPI. "
+            "Please use the main Knowledgator API for this service."
+        )
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(
+            f"{self._service_name} is not available via RapidAPI. "
+            "Please use the main Knowledgator API for this service."
         )

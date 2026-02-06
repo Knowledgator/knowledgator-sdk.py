@@ -5,7 +5,9 @@ import httpx
 
 from .base import BaseAPI, EndpointsConfig
 from ..datasets import (
+    Data,
     Dataset,
+    ListDataResponse,
     ListFormatsResponse,
     ListDatasetsResponse,
     DatasetCreationResponse,
@@ -30,6 +32,14 @@ class DatasetsEndpointsConfig(EndpointsConfig):
     delete: str = "{dataset_id}/"
     upload: str = "{dataset_id}/files/upload/"
     list_formats: str = "../files/formats/datasets/"
+
+    # Data endpoints
+    list_data: str = "../data/"
+    create_data: str = "../data/"
+    get_data: str = "../data/{data_id}/"
+    update_data: str = "../data/{data_id}/"
+    delete_data: str = "../data/{data_id}/"
+    upload_data: str = "../data/{data_id}/files/upload/"
 
 
 class DatasetsAPI(BaseAPI):
@@ -113,7 +123,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.list: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.list: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -204,7 +216,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.create: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.create: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -245,7 +259,9 @@ class DatasetsAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -267,7 +283,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.get: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.get: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -317,9 +335,13 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest("At least one field (name or description) must be provided for update")
+            raise BadRequest(
+                "At least one field (name or description) must be provided for update"
+            )
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -342,7 +364,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.update: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.update: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -369,7 +393,9 @@ class DatasetsAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -391,7 +417,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.delete: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.delete: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -429,7 +457,9 @@ class DatasetsAPI(BaseAPI):
         else:
             files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -452,7 +482,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.upload: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.upload: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -510,7 +542,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_formats: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_formats: %s %s", request.method, request.url
+            )
 
         try:
             response = self.send(request)
@@ -520,7 +554,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_formats: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_formats: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -528,6 +564,369 @@ class DatasetsAPI(BaseAPI):
         try:
             raw: dict[str, Any] = response.json()
             return ListFormatsResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    def list_data(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        name: Optional[str] = None,
+        type: Optional[str] = None,
+        format: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> ListDataResponse:
+        """
+        List raw data with optional filtering.
+
+        Args:
+            offset: Pagination offset (default: 0).
+            limit: Maximum number of results (default: 100, max: 1000).
+            name: Filter by data name.
+            type: Filter by service type.
+            format: Filter by data format.
+            server_url: Optional server URL override.
+            timeout_ms: Optional timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Returns:
+            ListDataResponse with data list and pagination info.
+
+        Raises:
+            TransportTimeout: If the request times out.
+            ConnectionFailure: If there's a transport error.
+            ServerError: If the server returns an error.
+        """
+        # Build query parameters
+        query_params = {"offset": offset, "limit": limit}
+        if name is not None:
+            query_params["name"] = name
+        if type is not None:
+            query_params["type"] = type
+        if format is not None:
+            query_params["format"] = format
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_data}".rstrip("/")
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            query_params=query_params,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug("DatasetsAPI.list_data: %s %s", request.method, request.url)
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.list_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return ListDataResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    def create_data(
+        self,
+        name: str,
+        type: str,
+        format: str,
+        description: Optional[str] = None,
+        file: Optional[Union[bytes, BinaryIO]] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> DatasetCreationResponse:
+        """
+        Create a new raw data entry.
+        """
+        data_payload = {
+            "name": name,
+            "type": type,
+            "format": format,
+        }
+
+        if description is not None:
+            data_payload["description"] = description
+
+        files_payload = None
+        if file is not None:
+            files_payload = {"file": ("file", file)}
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.create_data}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            data_body=data_payload,
+            files=files_payload,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.create_data: %s %s", request.method, request.url
+            )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.create_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return DatasetCreationResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    def get_data(
+        self,
+        data_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> Data:
+        """
+        Get raw data details by ID.
+        """
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug("DatasetsAPI.get_data: %s %s", request.method, request.url)
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.get_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return Data(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    def update_data(
+        self,
+        data_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        """
+        Update raw data metadata.
+        """
+        json_body = {}
+        if name is not None:
+            json_body["name"] = name
+        if description is not None:
+            json_body["description"] = description
+
+        if not json_body:
+            raise BadRequest(
+                "At least one field (name or description) must be provided for update"
+            )
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="PATCH",
+            path=path,
+            url_override=server_url,
+            json_body=json_body,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.update_data: %s %s", request.method, request.url
+            )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.update_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+    def delete_data(
+        self,
+        data_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        """
+        Delete a raw data entry.
+        """
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="DELETE",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.delete_data: %s %s", request.method, request.url
+            )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.delete_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+    def upload_data(
+        self,
+        data_id: str,
+        file: Union[bytes, BinaryIO],
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> DatasetCreationResponse:
+        """
+        Upload a file to an existing raw data entry.
+        """
+        files_payload = {"file": ("file", file)}
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            files=files_payload,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.upload_data: %s %s", request.method, request.url
+            )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.upload_data: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return DatasetCreationResponse(**raw)
         except Exception as exc:
             raise ServerError(
                 "Malformed or unexpected response",
@@ -574,7 +973,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -584,7 +985,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -642,7 +1045,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.create_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.create_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -652,7 +1057,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.create_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.create_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -676,7 +1083,9 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> Dataset:
         """Async version of get()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -698,7 +1107,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.get_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.get_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -731,9 +1142,13 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest("At least one field (name or description) must be provided for update")
+            raise BadRequest(
+                "At least one field (name or description) must be provided for update"
+            )
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -746,7 +1161,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.update_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.update_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -756,7 +1173,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.update_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.update_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -769,7 +1188,9 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Async version of delete()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -781,7 +1202,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.delete_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.delete_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -791,7 +1214,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.delete_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.delete_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -810,7 +1235,9 @@ class DatasetsAPI(BaseAPI):
         else:
             files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(dataset_id=dataset_id).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(
+            dataset_id=dataset_id
+        ).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -823,7 +1250,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.upload_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.upload_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -833,7 +1262,9 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.upload_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.upload_async: %s ← %s", response.status_code, request.url
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -873,7 +1304,9 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_formats_async: %s %s", request.method, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_formats_async: %s %s", request.method, request.url
+            )
 
         try:
             response = await self.send_async(request)
@@ -883,7 +1316,11 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("DatasetsAPI.list_formats_async: %s ← %s", response.status_code, request.url)
+            self._log.debug(
+                "DatasetsAPI.list_formats_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -891,6 +1328,352 @@ class DatasetsAPI(BaseAPI):
         try:
             raw: dict[str, Any] = response.json()
             return ListFormatsResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    async def list_data_async(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        name: Optional[str] = None,
+        type: Optional[str] = None,
+        format: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> ListDataResponse:
+        """Async version of list_data()."""
+        query_params = {"offset": offset, "limit": limit}
+        if name is not None:
+            query_params["name"] = name
+        if type is not None:
+            query_params["type"] = type
+        if format is not None:
+            query_params["format"] = format
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_data}".rstrip("/")
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            query_params=query_params,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.list_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.list_data_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return ListDataResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    async def create_data_async(
+        self,
+        name: str,
+        type: str,
+        format: str,
+        description: Optional[str] = None,
+        file: Optional[Union[bytes, BinaryIO]] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> DatasetCreationResponse:
+        """Async version of create_data()."""
+        data_payload = {
+            "name": name,
+            "type": type,
+            "format": format,
+        }
+
+        if description is not None:
+            data_payload["description"] = description
+
+        files_payload = None
+        if file is not None:
+            files_payload = {"file": ("file", file)}
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.create_data}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            data_body=data_payload,
+            files=files_payload,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.create_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.create_data_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return DatasetCreationResponse(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    async def get_data_async(
+        self,
+        data_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> Data:
+        """Async version of get_data()."""
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.get_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.get_data_async: %s ← %s", response.status_code, request.url
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return Data(**raw)
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    async def update_data_async(
+        self,
+        data_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        """Async version of update_data()."""
+        json_body = {}
+        if name is not None:
+            json_body["name"] = name
+        if description is not None:
+            json_body["description"] = description
+
+        if not json_body:
+            raise BadRequest(
+                "At least one field (name or description) must be provided for update"
+            )
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="PATCH",
+            path=path,
+            url_override=server_url,
+            json_body=json_body,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.update_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.update_data_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+    async def delete_data_async(
+        self,
+        data_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> None:
+        """Async version of delete_data()."""
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="DELETE",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.delete_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.delete_data_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+    async def upload_data_async(
+        self,
+        data_id: str,
+        file: Union[bytes, BinaryIO],
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> DatasetCreationResponse:
+        """Async version of upload_data()."""
+        files_payload = {"file": ("file", file)}
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(
+            data_id=data_id
+        ).rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            files=files_payload,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.upload_data_async: %s %s", request.method, request.url
+            )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "DatasetsAPI.upload_data_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            raw: dict[str, Any] = response.json()
+            return DatasetCreationResponse(**raw)
         except Exception as exc:
             raise ServerError(
                 "Malformed or unexpected response",

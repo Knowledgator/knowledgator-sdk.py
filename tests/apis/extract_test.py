@@ -1,17 +1,16 @@
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import (
-    BadRequest,
     ServerError,
     TransportTimeout,
     ConnectionFailure,
 )
-from knowledgator.apis.extract import ExtractAPI, ExtractEndpointsConfig
+from knowledgator.apis.extract import ExtractAPI
 from knowledgator.models.inputs import ExtractBaseRequest, ExtractSummaryRequest, ExtractRelationsRequest
 from knowledgator.models.outputs import (
     EntityResponse,
@@ -63,12 +62,12 @@ class TestExtractBaseRequest:
 
     def test_threshold_validation_min(self):
         """Test that threshold < 0 raises validation error."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):
             ExtractBaseRequest(text="Test", labels=["a", "b"], threshold=-0.1)
 
     def test_threshold_validation_max(self):
         """Test that threshold > 1 raises validation error."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):
             ExtractBaseRequest(text="Test", labels=["a", "b"], threshold=1.1)
 
 
@@ -397,9 +396,11 @@ class TestExtractAPIAsync:
     async def test_async_timeout(self, extract_api):
         """Test async timeout handling."""
         # Mock the send method to raise timeout
-        with patch.object(extract_api, "send", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))):
-            with pytest.raises(TransportTimeout):
-                await extract_api.it_async(text="Test", labels=["entity1", "entity2"])
+        with (
+            patch.object(extract_api, "send", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))),
+            pytest.raises(TransportTimeout),
+        ):
+            await extract_api.it_async(text="Test", labels=["entity1", "entity2"])
 
     @pytest.mark.asyncio
     async def test_async_relations(self, extract_api):

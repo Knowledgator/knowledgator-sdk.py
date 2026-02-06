@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from pydantic import Field, BaseModel, constr, confloat
 

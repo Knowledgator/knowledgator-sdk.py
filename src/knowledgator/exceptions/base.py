@@ -52,16 +52,17 @@ class ConnectionFailure(NetworkError):
 class APIError(SDKError):
     """
     Base for errors originating from the remote service.
+
     All subclasses have `status_code` set.
     """
 
 
 class ClientError(APIError):
-    """4xx family"""
+    """4xx family."""
 
 
 class ServerError(APIError):
-    """5xx family"""
+    """5xx family."""
 
 
 _STATUS_MAP: dict[int, Type[APIError]] = {

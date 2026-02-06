@@ -2,13 +2,9 @@
 
 from enum import Enum
 
+from ..common import ServiceType
 
-class ServiceType(str, Enum):
-    """Dataset service types."""
-
-    NER = "ner"
-    TEXT_CLASSIFICATION = "text-classification"
-    RELATION_EXTRACTION = "relation-extraction"
+__all__ = ["DatasetFormat", "DatasetStatus", "ServiceType"]
 
 
 class DatasetFormat(str, Enum):

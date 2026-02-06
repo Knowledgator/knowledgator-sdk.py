@@ -3,10 +3,8 @@ from __future__ import annotations
 import os
 import random
 import platform
-from typing import Any, Dict, Tuple, Union, Optional
+from typing import Any, Dict, Tuple, Optional
 from dataclasses import field, replace, dataclass
-
-from pydantic import Field
 
 from .version import __version__
 from .utils.logger import Logger
@@ -19,17 +17,9 @@ SERVERS = {
 }
 
 
-DEFAULT_UA = (
-    lambda: f"knowledgator-python/{__version__} ({platform.system()} {platform.release()}; {platform.machine()})"
-)
+def DEFAULT_UA():
+    return f"knowledgator-python/{__version__} ({platform.system()} {platform.release()}; {platform.machine()})"
 
-
-
-DEFAULT_UA = (
-    lambda: f"knowledgator-python/{__version__} "
-            f"({platform.system()} {platform.release()}; "
-            f"{platform.machine()})"
-)
 
 @dataclass(slots=True)
 class RetryPolicyConfigs:
@@ -100,8 +90,9 @@ class SDKConfigs:
 
     def copy(self, **overrides) -> SDKConfigs:
         """
-        Return a *shallow* copy of this SDKConfigs instance, with optional
-        field overrides::
+        Return a *shallow* copy of this SDKConfigs instance.
+
+        With optional field overrides::
 
             new_cfg = cfg.copy(timeout_ms=5_000, server="comprehend-it-rapidapi")
 

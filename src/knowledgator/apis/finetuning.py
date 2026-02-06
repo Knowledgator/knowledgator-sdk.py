@@ -5,7 +5,6 @@ import httpx
 
 from .base import BaseAPI, EndpointsConfig
 from ..exceptions import (
-    BadRequest,
     ServerError,
     TransportTimeout,
     ConnectionFailure,
@@ -108,9 +107,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.create_base_model: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.create_base_model: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -185,9 +182,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_models: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_models: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -197,9 +192,7 @@ class FinetuningAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_models: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("FinetuningAPI.list_models: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -240,9 +233,7 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(
-            model_id=model_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(model_id=model_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -254,9 +245,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_model: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_model: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -266,9 +255,7 @@ class FinetuningAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_model: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("FinetuningAPI.get_model: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -318,9 +305,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_model_types: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_model_types: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -400,9 +385,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.start_training: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.start_training: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -485,9 +468,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_trainings: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_trainings: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -542,9 +523,7 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -556,9 +535,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_training: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_training: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -568,9 +545,7 @@ class FinetuningAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_training: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("FinetuningAPI.get_training: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -608,9 +583,7 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -622,9 +595,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.delete_training: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.delete_training: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -665,9 +636,7 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.stop_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.stop_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -680,9 +649,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.stop_training: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.stop_training: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -736,9 +703,7 @@ class FinetuningAPI(BaseAPI):
         """
         query_params = {"offset": offset, "limit": limit}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_events}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_events}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -751,9 +716,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_events: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_events: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -763,9 +726,7 @@ class FinetuningAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_events: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("FinetuningAPI.list_events: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -814,9 +775,9 @@ class FinetuningAPI(BaseAPI):
         """
         query_params = {"offset": offset, "limit": limit}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_metrics}".format(
-            training_id=training_id, metric=metric
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_metrics}".format(training_id=training_id, metric=metric).rstrip(
+            "/"
+        )
         request = self._make_request(
             method="GET",
             path=path,
@@ -829,9 +790,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_metrics: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_metrics: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -841,9 +800,7 @@ class FinetuningAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_metrics: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("FinetuningAPI.get_metrics: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -951,9 +908,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_models_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_models_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -991,9 +946,7 @@ class FinetuningAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> TrainingModel:
         """Async version of get_model()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(
-            model_id=model_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(model_id=model_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -1005,9 +958,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_model_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_model_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1121,9 +1072,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.start_training_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.start_training_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1186,9 +1135,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_trainings_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_trainings_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1226,9 +1173,7 @@ class FinetuningAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> TrainingObject:
         """Async version of get_training()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -1240,9 +1185,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_training_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_training_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1280,9 +1223,7 @@ class FinetuningAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Async version of delete_training()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -1325,9 +1266,7 @@ class FinetuningAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Async version of stop_training()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.stop_training}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.stop_training}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -1340,9 +1279,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.stop_training_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.stop_training_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1377,9 +1314,7 @@ class FinetuningAPI(BaseAPI):
         """Async version of list_events()."""
         query_params = {"offset": offset, "limit": limit}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_events}".format(
-            training_id=training_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_events}".format(training_id=training_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -1392,9 +1327,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.list_events_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.list_events_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1437,9 +1370,9 @@ class FinetuningAPI(BaseAPI):
         """Async version of get_metrics()."""
         query_params = {"offset": offset, "limit": limit}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_metrics}".format(
-            training_id=training_id, metric=metric
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_metrics}".format(training_id=training_id, metric=metric).rstrip(
+            "/"
+        )
         request = self._make_request(
             method="GET",
             path=path,
@@ -1452,9 +1385,7 @@ class FinetuningAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "FinetuningAPI.get_metrics_async: %s %s", request.method, request.url
-            )
+            self._log.debug("FinetuningAPI.get_metrics_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)

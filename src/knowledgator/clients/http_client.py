@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import time
-import random
 import asyncio
 import urllib.parse
-from typing import Any, Union, Mapping, Iterable, Iterator, Optional
-from dataclasses import dataclass
+from typing import Any, Union, Iterable, Iterator, Optional
 
 import httpx
 
@@ -29,7 +27,8 @@ class BaseHttpClient:
 
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
-    
+
+
 class HttpClient(BaseHttpClient):
     def __init__(
         self,

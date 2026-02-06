@@ -1,5 +1,5 @@
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
@@ -11,7 +11,7 @@ from knowledgator.exceptions import (
     TransportTimeout,
     ConnectionFailure,
 )
-from knowledgator.apis.instruct import InstructAPI, InstructEndpointsConfig
+from knowledgator.apis.instruct import InstructAPI
 from knowledgator.models.common import FileMetadata
 from knowledgator.models.inputs import InstructRequest
 from knowledgator.models.outputs import InstructResults

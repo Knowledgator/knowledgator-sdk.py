@@ -1,19 +1,18 @@
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import (
-    BadRequest,
     ServerError,
     TransportTimeout,
     ConnectionFailure,
 )
 from knowledgator.models.inputs import ComprehendRequest, ClassificationExample
 from knowledgator.models.outputs import ComprehendResults, ComprehendResponse
-from knowledgator.apis.comprehend import ComprehendAPI, ComprehendEndpointsConfig
+from knowledgator.apis.comprehend import ComprehendAPI
 
 
 @pytest.fixture
@@ -59,12 +58,12 @@ class TestComprehendRequest:
 
     def test_threshold_validation_min(self):
         """Test that threshold < 0 raises validation error."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):  # Pydantic validation error
             ComprehendRequest(text="Test", labels=["a", "b"], threshold=-0.1)
 
     def test_threshold_validation_max(self):
         """Test that threshold > 1 raises validation error."""
-        with pytest.raises(Exception):  # Pydantic validation error
+        with pytest.raises(ValidationError):  # Pydantic validation error
             ComprehendRequest(text="Test", labels=["a", "b"], threshold=1.1)
 
 
