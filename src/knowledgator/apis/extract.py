@@ -23,6 +23,7 @@ from ..models.outputs import (
     ExtractSummaryResults,
     ExtractRelationsResults,
 )
+from ..utils.dictionaries_op import get_model_id_header
 
 
 @dataclass
@@ -164,11 +165,10 @@ class ExtractAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -239,11 +239,10 @@ class ExtractAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -318,11 +317,10 @@ class ExtractAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -398,11 +396,10 @@ class ExtractAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -473,11 +470,10 @@ class ExtractAPI(BaseAPI):
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -544,11 +540,10 @@ class ExtractAPI(BaseAPI):
 
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,

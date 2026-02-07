@@ -46,9 +46,13 @@ class BaseAPI:
 
         self.base_headers = server_headers or {}
 
-        retry_cfg: RetryPolicyConfigs = self.configs.retry_config or RetryPolicyConfigs()
+        retry_cfg: RetryPolicyConfigs = (
+            self.configs.retry_config or RetryPolicyConfigs()
+        )
         timeout_sec: float | int | None = (
-            (self.configs.timeout_ms or 0) / 1000 if self.configs.timeout_ms is not None else None
+            (self.configs.timeout_ms or 0) / 1000
+            if self.configs.timeout_ms is not None
+            else None
         )
 
         if self.configs.client is None:
@@ -84,10 +88,13 @@ class BaseAPI:
             self.configs.async_client_supplied = False
 
     def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
-        if extra is None:
-            headers = self.base_headers
-        headers = {**self.base_headers, **remove_none_from_dict(extra)}
-        raw_headers: list[tuple[bytes, bytes]] = [(k.encode("ascii"), str(v).encode()) for k, v in headers.items()]
+        headers = {
+            **self.base_headers,
+            **(remove_none_from_dict(extra) if extra else {}),
+        }
+        raw_headers: list[tuple[bytes, bytes]] = [
+            (k.encode("ascii"), str(v).encode()) for k, v in headers.items()
+        ]
         return raw_headers
 
     def _make_request(
@@ -158,7 +165,9 @@ class BaseAPI:
         if body_kind == "multipart":
             body_kwargs = {}
         else:
-            body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
+            body_kwargs = {
+                extensions.get("_body_kind", "data"): extensions.get("_body_value")
+            }
 
         req = httpx.Request(
             method=method,

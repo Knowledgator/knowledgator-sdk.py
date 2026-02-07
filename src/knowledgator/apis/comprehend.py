@@ -15,6 +15,7 @@ from ..exceptions import (
 )
 from ..models.inputs import ComprehendRequest
 from ..models.outputs import ComprehendResults, ComprehendResponse
+from ..utils.dictionaries_op import get_model_id_header
 
 
 @dataclass
@@ -92,11 +93,10 @@ class ComprehendAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -175,11 +175,10 @@ class ComprehendAPI(BaseAPI):
         )
         path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
