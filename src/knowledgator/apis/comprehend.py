@@ -25,7 +25,7 @@ class ComprehendEndpointsConfig(EndpointsConfig):
 
 class ComprehendAPI(BaseAPI):
     """
-    ComprehendAPI - zero-shot classification API service,"""
+    ComprehendAPI - zero-shot classification API service."""
 
     PATH = "/inference/comprehend/"
     METHOD = "POST"

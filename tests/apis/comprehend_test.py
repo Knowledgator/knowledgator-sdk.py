@@ -58,12 +58,12 @@ class TestComprehendRequest:
 
     def test_threshold_validation_min(self):
         """Test that threshold < 0 raises validation error."""
-        with pytest.raises(ValidationError):  # Pydantic validation error
+        with pytest.raises(ValidationError):
             ComprehendRequest(text="Test", labels=["a", "b"], threshold=-0.1)
 
     def test_threshold_validation_max(self):
         """Test that threshold > 1 raises validation error."""
-        with pytest.raises(ValidationError):  # Pydantic validation error
+        with pytest.raises(ValidationError):
             ComprehendRequest(text="Test", labels=["a", "b"], threshold=1.1)
 
 

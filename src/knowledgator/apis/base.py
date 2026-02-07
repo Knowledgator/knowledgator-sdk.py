@@ -46,13 +46,9 @@ class BaseAPI:
 
         self.base_headers = server_headers or {}
 
-        retry_cfg: RetryPolicyConfigs = (
-            self.configs.retry_config or RetryPolicyConfigs()
-        )
+        retry_cfg: RetryPolicyConfigs = self.configs.retry_config or RetryPolicyConfigs()
         timeout_sec: float | int | None = (
-            (self.configs.timeout_ms or 0) / 1000
-            if self.configs.timeout_ms is not None
-            else None
+            (self.configs.timeout_ms or 0) / 1000 if self.configs.timeout_ms is not None else None
         )
 
         if self.configs.client is None:
@@ -92,9 +88,7 @@ class BaseAPI:
             **self.base_headers,
             **(remove_none_from_dict(extra) if extra else {}),
         }
-        raw_headers: list[tuple[bytes, bytes]] = [
-            (k.encode("ascii"), str(v).encode()) for k, v in headers.items()
-        ]
+        raw_headers: list[tuple[bytes, bytes]] = [(k.encode("ascii"), str(v).encode()) for k, v in headers.items()]
         return raw_headers
 
     def _make_request(
@@ -165,9 +159,7 @@ class BaseAPI:
         if body_kind == "multipart":
             body_kwargs = {}
         else:
-            body_kwargs = {
-                extensions.get("_body_kind", "data"): extensions.get("_body_value")
-            }
+            body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
 
         req = httpx.Request(
             method=method,
@@ -190,9 +182,9 @@ class BaseAPI:
         return req
 
     def send(self, request: httpx.Request) -> httpx.Response:
-        """
-        Synchronously send *request* using the configured `HttpClient`,
-        inheriting its retry / timeout behaviour.
+        """Send *request* synchronously using the configured `HttpClient`.
+
+        Inherits its retry / timeout behaviour.
         """
         if self.configs.client is None:
             raise RuntimeError("Synchronous client is not initialised")
@@ -242,9 +234,7 @@ class BaseAPI:
         return response
 
     async def send_async(self, request: httpx.Request) -> httpx.Response:
-        """
-        Asynchronously send *request* using the configured `AsyncHttpClient`.
-        """
+        """Send *request* asynchronously using the configured `AsyncHttpClient`."""
         if self.configs.async_client is None:
             raise RuntimeError("Asynchronous client is not initialised")
 

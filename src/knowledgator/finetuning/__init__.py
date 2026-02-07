@@ -24,26 +24,26 @@ from .outputs import (
 )
 
 __all__ = [
-    # Common
-    "ServiceType",
-    "TrainingStatus",
     # Inputs
     "CreateBaseModelRequest",
     "GetMetricsRequest",
     "ListEventsRequest",
-    "ListModelsRequest",
-    "ListTrainingsRequest",
-    "StartTrainingRequest",
     # Outputs
     "ListEventsResponse",
     "ListMetricsResponse",
+    "ListModelsRequest",
     "ListModelsResponse",
     "ListTagsResponse",
+    "ListTrainingsRequest",
     "ListTrainingsResponse",
     "MetricDataPoint",
     "ObjectCreation",
+    # Common
+    "ServiceType",
+    "StartTrainingRequest",
     "Tag",
     "TrainingEvent",
     "TrainingModel",
     "TrainingObject",
+    "TrainingStatus",
 ]
