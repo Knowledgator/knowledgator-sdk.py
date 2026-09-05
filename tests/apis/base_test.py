@@ -232,3 +232,22 @@ def test_instruct_retry_policy():
     api = InstructAPI(configs)
     assert api.configs.retry_config is retry
     assert api.configs.retry_config.max_tries == 6
+
+
+def test_base_api_send_params_none():
+    from unittest.mock import MagicMock
+    configs = SDKConfigs()
+    configs.client = MagicMock()
+    api = BaseAPI(configs)
+
+    req = api._make_request(
+        method="POST",
+        path="/test",
+        query_params={"q": "1"},
+    )
+    api.send(req)
+
+    configs.client.request.assert_called_once()
+    kwargs = configs.client.request.call_args.kwargs
+    assert kwargs["params"] is None
+

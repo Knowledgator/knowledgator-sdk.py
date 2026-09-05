@@ -92,11 +92,14 @@ class BaseKnowledgator:
         if (
             client
             and not self.configs.async_client_supplied
-            and not self._is_closed(client)  # helper from previous fix
+            and not self._is_closed(client)
         ):
-            result = client.aclose()  # call it first
-            if inspect.isawaitable(result):  # only await real coroutines
-                await result
+            if hasattr(client, "aclose"):
+                result = client.aclose()
+                if inspect.isawaitable(result):
+                    await result
+            elif hasattr(client, "close"):
+                client.close()
 
     async def __aenter__(self) -> BaseKnowledgator:
         return self

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, BaseModel, constr, confloat
+from pydantic import AliasChoices, ConfigDict, Field, BaseModel, constr, confloat
 
 from .common import FileMetadata
 
@@ -24,8 +24,16 @@ class ComprehendRequest(BaseModel):
 
 
 class ExtractBaseRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     text: str
-    labels: List[str]
+    labels: List[str] = Field(
+        ...,
+        alias="entities",
+        serialization_alias="entities",
+        validation_alias=AliasChoices("entities", "labels"),
+        description="Entities/labels for extraction",
+    )
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
     prompt: Optional[str] = None
 

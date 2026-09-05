@@ -46,11 +46,11 @@ class HttpClient(BaseHttpClient):
         )
 
         if self._client is None:
-            self._client = httpx.Client(timeout=self._timeout)
+            self._client = httpx.Client(timeout=self._timeout, follow_redirects=True)
 
     def __enter__(self):
         if self._client is None:
-            self._client = httpx.Client(timeout=self._timeout)
+            self._client = httpx.Client(timeout=self._timeout, follow_redirects=True)
         return self
 
     def __exit__(self, *exc):
@@ -68,7 +68,7 @@ class HttpClient(BaseHttpClient):
         content: Optional[Union[bytes, Iterator[bytes]]] = None,
         files: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
-        follow_redirects: bool | None = None,
+        follow_redirects: bool | None = True,
         timeout: Optional[Union[int, float]] = None,
         retries: Optional[int] = None,
         omit: Optional[Iterable[str]] = None,
@@ -82,19 +82,31 @@ class HttpClient(BaseHttpClient):
             req_params = {}
         max_tries = retries if retries is not None else self._retry.max_tries
 
+        req_data = data
+        req_files = files
+        req_headers = headers.copy() if headers else {}
+        if isinstance(data, dict) and not files:
+            req_files = {
+                k: (None, str(v)) if not isinstance(v, (tuple, list)) else v
+                for k, v in data.items()
+            }
+            req_data = None
+            req_headers.pop("content-type", None)
+            req_headers.pop("Content-Type", None)
+
         attempt = 0
         while True:
             resp = self._client.request(
                 method=method,
                 url=url,
                 params=req_params,
-                data=data,
+                data=req_data,
                 json=json,
                 content=content,
-                files=files,
-                headers=headers,
+                files=req_files,
+                headers=req_headers,
                 timeout=timeout or self._timeout,
-                follow_redirects=follow_redirects,
+                follow_redirects=follow_redirects if follow_redirects is not None else True,
             )
             if attempt >= max_tries - 1 or not self._retry.should_retry(resp.status_code):
                 return resp
@@ -133,19 +145,24 @@ class AsyncHttpClient(BaseHttpClient):
         )
 
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self._timeout)
+            self._client = httpx.AsyncClient(timeout=self._timeout, follow_redirects=True)
 
     async def __aenter__(self):
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self._timeout)
+            self._client = httpx.AsyncClient(timeout=self._timeout, follow_redirects=True)
         return self
 
     async def __aexit__(self, *exc):
-        await self._client.aclose()
+        await self.aclose()
+
+    async def aclose(self):
+        if self._client is not None:
+            await self._client.aclose()
 
     async def request(
         self,
-        method: str,
+        url: str | None = None,
+        method: str = "POST",
         path: str | None = None,
         *,
         params: Optional[dict[str, Any]] = None,
@@ -154,17 +171,30 @@ class AsyncHttpClient(BaseHttpClient):
         content: Optional[Union[bytes, Iterator[bytes]]] = None,
         files: Optional[dict[str, Any]] = None,
         headers: Optional[dict[str, str]] = None,
-        follow_redirects: bool | None = None,
+        follow_redirects: bool | None = True,
         timeout: Optional[Union[int, float]] = None,
         retries: Optional[int] = None,
         omit: Optional[Iterable[str]] = None,
     ) -> httpx.Response:
-        url = self._url(path)
+        if url is None:
+            url = self._url(path)
         if params is not None:
             req_params = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
             req_params = {}
         max_tries = retries if retries is not None else self._retry.max_tries
+
+        req_data = data
+        req_files = files
+        req_headers = headers.copy() if headers else {}
+        if isinstance(data, dict) and not files:
+            req_files = {
+                k: (None, str(v)) if not isinstance(v, (tuple, list)) else v
+                for k, v in data.items()
+            }
+            req_data = None
+            req_headers.pop("content-type", None)
+            req_headers.pop("Content-Type", None)
 
         attempt = 0
         while True:
@@ -172,13 +202,13 @@ class AsyncHttpClient(BaseHttpClient):
                 method=method,
                 url=url,
                 params=req_params,
-                data=data,
+                data=req_data,
                 json=json,
                 content=content,
-                files=files,
-                headers=headers,
+                files=req_files,
+                headers=req_headers,
                 timeout=timeout or self._timeout,
-                follow_redirects=follow_redirects,
+                follow_redirects=follow_redirects if follow_redirects is not None else True,
             )
             if attempt >= max_tries - 1 or not self._retry.should_retry(resp.status_code):
                 return resp  # success or exhausted retries
