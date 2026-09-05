@@ -56,7 +56,7 @@ class TestInstructAPIMockRequests:
         assert "template" not in call_kwargs["data"]
         assert "filesmetadata" not in call_kwargs["data"]
         assert "output_type" not in call_kwargs["data"]
-        assert "files" not in call_kwargs  # No files in minimal request
+        assert not call_kwargs.get("files")  # No file attachments in minimal request
 
         # Verify response
         assert result.outputs == "This is a simple text response"
@@ -125,7 +125,7 @@ class TestInstructAPIMockRequests:
         assert filesmetadata[0] == "file-id-1"
         assert filesmetadata[1] == "file-id-2"
         # No files parameter since no content
-        assert "files" not in call_kwargs
+        assert not call_kwargs.get("files")
 
     def test_request_with_file_content(self, api):
         """Test request with file content transmitted via files parameter."""

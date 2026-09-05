@@ -108,8 +108,8 @@ class InstructAPI(BaseAPI):
             filesmetadata = [f.name for f in files]
             data_payload["filesmetadata"] = json.dumps(filesmetadata)
 
-        # Build files payload (only files with content)
-        files_payload = None
+        # Build files payload (always pass dict so httpx uses multipart/form-data)
+        files_payload = {}
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
@@ -117,7 +117,8 @@ class InstructAPI(BaseAPI):
                     f.name: (f.name, f.content) for f in files_with_content
                 }
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
+        main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
+        path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
 
         headers = {}
         if http_headers:
@@ -144,9 +145,9 @@ class InstructAPI(BaseAPI):
         try:
             response = self.send(request)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
+            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
+            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
 
         if self._log:
             self._log.debug("InstructAPI: %s ← %s", response.status_code, request.url)
@@ -238,8 +239,8 @@ class InstructAPI(BaseAPI):
             filesmetadata = [f.name for f in files]
             data_payload["filesmetadata"] = json.dumps(filesmetadata)
 
-        # Build files payload (only files with content)
-        files_payload = None
+        # Build files payload (always pass dict so httpx uses multipart/form-data)
+        files_payload = {}
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
@@ -247,7 +248,8 @@ class InstructAPI(BaseAPI):
                     f.name: (f.name, f.content) for f in files_with_content
                 }
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}".rstrip("/")
+        main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
+        path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
 
         headers = {}
         if http_headers:
@@ -274,9 +276,9 @@ class InstructAPI(BaseAPI):
         try:
             response = await self.send_async(request)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
+            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
+            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
 
         if self._log:
             self._log.debug("InstructAPI: %s ← %s", response.status_code, request.url)
