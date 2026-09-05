@@ -70,7 +70,7 @@ class ExtractAPI(BaseAPI):
         return ExtractBaseResults(
             results=entities,
             input_text=raw.get("input_text", text_fallback),
-            labels=raw.get("labels", labels_fallback),
+            labels=raw.get("labels") or raw.get("entities") or labels_fallback,
             threshold=raw.get(
                 "threshold",
                 threshold_fallback
@@ -175,7 +175,7 @@ class ExtractAPI(BaseAPI):
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=body.model_dump(exclude_none=True, by_alias=True),
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -250,7 +250,7 @@ class ExtractAPI(BaseAPI):
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=body.model_dump(exclude_none=True, by_alias=True),
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -261,11 +261,11 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: %s %s", request.method, request.url)
 
         try:
-            response = await self.send(request)
+            response = await self.send_async(request)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
+            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
+            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
 
         if self._log:
             self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
@@ -420,11 +420,11 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: %s %s", request.method, request.url)
 
         try:
-            response = await self.send(request)
+            response = await self.send_async(request)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
+            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
+            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
 
         if self._log:
             self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
@@ -566,11 +566,11 @@ class ExtractAPI(BaseAPI):
             self._log.debug("ExtractAPI: %s %s", request.method, request.url)
 
         try:
-            response = await self.send(request)
+            response = await self.send_async(request)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout("Request timed-out") from exc
+            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure("Transport error") from exc
+            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
 
         if self._log:
             self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
