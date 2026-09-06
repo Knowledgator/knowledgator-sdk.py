@@ -10,15 +10,15 @@ try:
 except ImportError:
     pass
 
-API_KEY = os.getenv("KG_MCP_API_KEY") or os.getenv("KG_API_KEY")
-BASE_URL = os.getenv("KG_MCP_BASE_URL") or os.getenv("KG_BASE_URL")
+API_KEY = os.getenv("KG_API_KEY")
+BASE_URL = os.getenv("KG_BASE_URL")
 
 
 def pytest_collection_modifyitems(config, items):
     """Skip E2E test items if no API key is set in environment."""
     if not API_KEY:
         skip_marker = pytest.mark.skip(
-            reason="KG_MCP_API_KEY or KG_API_KEY environment variable is required to run E2E live API tests"
+            reason="KG_API_KEY environment variable is required to run E2E live API tests"
         )
         for item in items:
             item.add_marker(skip_marker)
