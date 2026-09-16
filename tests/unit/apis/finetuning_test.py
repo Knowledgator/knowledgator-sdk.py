@@ -121,3 +121,97 @@ class TestFinetuningAPIMockRequests:
 
         # Verify empty json body
         assert kwargs["json"] == {}
+
+    def test_start_training_adapter_payload(self, api):
+        """Test start_training with adapter payload structure matching working JSON spec."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "ft-adapter-1",
+            "model_id": "comprehend-it",
+            "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+            "status": "pending",
+            "created_at": "2026-09-16T00:00:00Z",
+            "updated_at": "2026-09-16T00:00:00Z",
+        }
+        api.configs.client.request.return_value = mock_response
+
+        res = api.start_training(
+            model_id="comprehend-it",
+            dataset_id="6babd48a-2256-4466-b16b-9fd45ba59688",
+            type="adapter",
+            hyperparameters={
+                "seed": 0,
+                "batch": None,
+                "learning_rate_mult": None,
+                "num_of_epochs": None,
+            },
+            validation_dataset_id="6babd48a-2256-4466-b16b-9fd45ba59688",
+        )
+
+        assert res.id == "ft-adapter-1"
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "POST"
+        assert kwargs["json"] == {
+            "parent_model_id": "comprehend-it",
+            "type": "adapter",
+            "training": {
+                "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+                "args": {
+                    "seed": 0,
+                    "batch": None,
+                    "learning_rate_mult": None,
+                    "num_of_epochs": None,
+                },
+            },
+            "validation": {
+                "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+            },
+        }
+
+    def test_start_training_full_model_payload(self, api):
+        """Test start_training with full model payload structure matching working JSON spec."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "ft-model-1",
+            "model_id": "gliclass-x-base",
+            "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+            "status": "pending",
+            "created_at": "2026-09-16T00:00:00Z",
+            "updated_at": "2026-09-16T00:00:00Z",
+        }
+        api.configs.client.request.return_value = mock_response
+
+        res = api.start_training(
+            model_id="gliclass-x-base",
+            dataset_id="6babd48a-2256-4466-b16b-9fd45ba59688",
+            type="model",
+            hyperparameters={
+                "seed": 0,
+                "batch": None,
+                "learning_rate_mult": None,
+                "num_of_epochs": None,
+            },
+            validation_dataset_id="6babd48a-2256-4466-b16b-9fd45ba59688",
+        )
+
+        assert res.id == "ft-model-1"
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "POST"
+        assert kwargs["json"] == {
+            "parent_model_id": "gliclass-x-base",
+            "type": "model",
+            "training": {
+                "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+                "args": {
+                    "seed": 0,
+                    "batch": None,
+                    "learning_rate_mult": None,
+                    "num_of_epochs": None,
+                },
+            },
+            "validation": {
+                "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+            },
+        }
