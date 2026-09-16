@@ -1,4 +1,4 @@
-from typing import Any, Union, Mapping, BinaryIO, Optional
+from typing import Any, Union, Mapping, BinaryIO, Optional, List
 from dataclasses import dataclass
 
 import httpx
@@ -31,6 +31,8 @@ class DatasetsEndpointsConfig(EndpointsConfig):
     update: str = "{dataset_id}/"
     delete: str = "{dataset_id}/"
     upload: str = "{dataset_id}/files/upload/"
+    generate_plan: str = "generate/plan/"
+    generate: str = "generate/"
     list_formats: str = "../files/formats/datasets/"
 
     # Data endpoints
@@ -1680,4 +1682,210 @@ class DatasetsAPI(BaseAPI):
                 status_code=response.status_code,
                 payload={"raw": response.text},
                 request_id=response.headers.get("x-request-id"),
+            ) from exc
+
+    def generate_plan(
+        self,
+        prompt: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> dict[str, Any]:
+        """Generate a dataset generation plan from a prompt."""
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.generate_plan}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            json_body={"prompt": prompt},
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+            ) from exc
+
+    async def generate_plan_async(
+        self,
+        prompt: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> dict[str, Any]:
+        """Generate a dataset generation plan from a prompt asynchronously."""
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.generate_plan}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            json_body={"prompt": prompt},
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+            ) from exc
+
+    def generate(
+        self,
+        name: str,
+        prompt: str,
+        type: str,
+        num_samples: int,
+        domains: Optional[List[str]] = None,
+        classes: Optional[List[str]] = None,
+        entity_types: Optional[List[str]] = None,
+        json_template: Optional[str] = None,
+        ner_output_format: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> dict[str, Any]:
+        """Start async dataset generation pipeline."""
+        body: dict[str, Any] = {
+            "name": name,
+            "prompt": prompt,
+            "type": type,
+            "num_samples": num_samples,
+        }
+        if domains is not None:
+            body["domains"] = domains
+        if classes is not None:
+            body["classes"] = classes
+        if entity_types is not None:
+            body["entity_types"] = entity_types
+        if json_template is not None:
+            body["json_template"] = json_template
+        if ner_output_format is not None:
+            body["ner_output_format"] = ner_output_format
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.generate}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            json_body=body,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+            ) from exc
+
+    async def generate_async(
+        self,
+        name: str,
+        prompt: str,
+        type: str,
+        num_samples: int,
+        domains: Optional[List[str]] = None,
+        classes: Optional[List[str]] = None,
+        entity_types: Optional[List[str]] = None,
+        json_template: Optional[str] = None,
+        ner_output_format: Optional[str] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> dict[str, Any]:
+        """Start async dataset generation pipeline asynchronously."""
+        body: dict[str, Any] = {
+            "name": name,
+            "prompt": prompt,
+            "type": type,
+            "num_samples": num_samples,
+        }
+        if domains is not None:
+            body["domains"] = domains
+        if classes is not None:
+            body["classes"] = classes
+        if entity_types is not None:
+            body["entity_types"] = entity_types
+        if json_template is not None:
+            body["json_template"] = json_template
+        if ner_output_format is not None:
+            body["ner_output_format"] = ner_output_format
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.generate}".rstrip("/")
+        request = self._make_request(
+            method="POST",
+            path=path,
+            url_override=server_url,
+            json_body=body,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
             ) from exc
