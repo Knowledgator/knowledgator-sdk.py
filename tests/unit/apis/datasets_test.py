@@ -497,3 +497,112 @@ class TestDatasetsAPIAsyncMockRequests:
 
         assert len(result.formats) == 1
         assert result.formats[0].name == "jsonl"
+
+    def test_list_datasets_data_key_alias(self, api):
+        """Test listing datasets when response contains 'data' instead of 'datasets' and omits offset/limit."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "total": 9,
+            "data": [
+                {
+                    "id": "6babd48a-2256-4466-b16b-9fd45ba59688",
+                    "name": "Ecomm Dataset",
+                    "type": "comprehend-it",
+                    "format": "json",
+                    "short_description": "Category dataset",
+                    "created_at": "2026-07-29T09:31:41Z",
+                    "updated_at": "2026-07-29T09:31:41Z",
+                    "status": "valid",
+                }
+            ],
+        }
+        mock_response.headers = {}
+        api.configs.client.request.return_value = mock_response
+
+        result = api.list()
+        assert result.total == 9
+        assert len(result.datasets) == 1
+        assert result.datasets[0].id == "6babd48a-2256-4466-b16b-9fd45ba59688"
+        assert result.datasets[0].name == "Ecomm Dataset"
+        assert result.datasets[0].description == "Category dataset"
+
+    def test_generate_plan(self, api):
+        """Test generating a dataset plan."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "plan": "Create product classification dataset",
+            "classes": ["Electronics", "Clothing"],
+        }
+        mock_response.headers = {}
+        api.configs.client.request.return_value = mock_response
+
+        res = api.generate_plan(prompt="Create sentiment dataset")
+        assert "plan" in res
+        assert res["classes"] == ["Electronics", "Clothing"]
+
+    @pytest.mark.asyncio
+    async def test_generate_plan_async(self, api):
+        """Test generating a dataset plan asynchronously."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "plan": "Create NER dataset",
+            "entity_types": ["PERSON", "ORG"],
+        }
+        mock_response.headers = {}
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.generate_plan_async(prompt="Create NER dataset")
+        assert "plan" in res
+        assert res["entity_types"] == ["PERSON", "ORG"]
+
+    def test_generate_dataset(self, api):
+        """Test starting dataset generation pipeline with low sample count."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "gen-ds-1",
+            "status": "started",
+            "num_samples": 1,
+        }
+        mock_response.headers = {}
+        api.configs.client.request.return_value = mock_response
+
+        res = api.generate(
+            name="ZSI0Y9Y",
+            prompt="Product review sentiment",
+            type="classification",
+            num_samples=1,
+            classes=["positive", "negative"],
+        )
+        assert res["id"] == "gen-ds-1"
+        assert res["status"] == "started"
+        assert res["num_samples"] == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_dataset_async(self, api):
+        """Test starting dataset generation pipeline asynchronously with low sample count."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "gen-ds-async-1",
+            "status": "started",
+            "num_samples": 5,
+        }
+        mock_response.headers = {}
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.generate_async(
+            name="ZSI0Y9Y_async",
+            prompt="NER entities generation",
+            type="ner",
+            num_samples=5,
+            entity_types=["PER", "LOC"],
+        )
+        assert res["id"] == "gen-ds-async-1"
+        assert res["status"] == "started"
+        assert res["num_samples"] == 5
+
+
