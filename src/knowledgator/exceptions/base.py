@@ -26,7 +26,8 @@ class SDKError(Exception):
         base = super().__str__()
         extra = f" [{self.status_code}]" if self.status_code else ""
         rid = f" (request_id={self.request_id})" if self.request_id else ""
-        return f"{base}{extra}{rid}"
+        payload_str = f" payload={self.payload}" if self.payload else ""
+        return f"{base}{extra}{rid}{payload_str}"
 
 
 class ConfigurationError(SDKError):
