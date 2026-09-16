@@ -163,11 +163,11 @@ class BaseAPI:
                 extensions["_body_kind"] = body_kind
                 extensions["_body_value"] = files
 
-        # For multipart, don't pass anything to httpx.Request, handle in send()
-        if body_kind == "multipart":
+        # For multipart or None, don't pass body to httpx.Request
+        if body_kind is None or body_kind == "multipart":
             body_kwargs = {}
         else:
-            body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
+            body_kwargs = {body_kind: extensions.get("_body_value")}
 
         req = httpx.Request(
             method=method,
