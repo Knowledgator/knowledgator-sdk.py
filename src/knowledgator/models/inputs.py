@@ -12,7 +12,7 @@ class ClassificationExample(BaseModel):
 
 class TextLabels(BaseModel):
     text: constr(min_length=1) = Field(..., description="Input text")
-    labels: List[str] = Field(..., description="Labels for classification/recogntiion", min_items=1)
+    labels: List[str] = Field(..., description="Labels for classification/recogntiion", min_length=1)
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
 
 
