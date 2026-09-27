@@ -37,4 +37,4 @@ class Logger:
             return  # filtered out
         ts = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         text = msg.format(*args, **kwargs)
-        print(self.fmt.format(ts=ts, level=level_name, name=self.name, msg=text))
+        print(self.fmt.format(ts=ts, level=level_name, name=self.name, msg=text))  # noqa: T201

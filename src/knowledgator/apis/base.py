@@ -84,9 +84,10 @@ class BaseAPI:
             self.configs.async_client_supplied = False
 
     def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
-        if extra is None:
-            headers = self.base_headers
-        headers = {**self.base_headers, **remove_none_from_dict(extra)}
+        headers = {
+            **self.base_headers,
+            **(remove_none_from_dict(extra) if extra else {}),
+        }
         raw_headers: list[tuple[bytes, bytes]] = [(k.encode("ascii"), str(v).encode()) for k, v in headers.items()]
         return raw_headers
 
@@ -181,9 +182,9 @@ class BaseAPI:
         return req
 
     def send(self, request: httpx.Request) -> httpx.Response:
-        """
-        Synchronously send *request* using the configured `HttpClient`,
-        inheriting its retry / timeout behaviour.
+        """Send *request* synchronously using the configured `HttpClient`.
+
+        Inherits its retry / timeout behaviour.
         """
         if self.configs.client is None:
             raise RuntimeError("Synchronous client is not initialised")
@@ -233,9 +234,7 @@ class BaseAPI:
         return response
 
     async def send_async(self, request: httpx.Request) -> httpx.Response:
-        """
-        Asynchronously send *request* using the configured `AsyncHttpClient`.
-        """
+        """Send *request* asynchronously using the configured `AsyncHttpClient`."""
         if self.configs.async_client is None:
             raise RuntimeError("Asynchronous client is not initialised")
 

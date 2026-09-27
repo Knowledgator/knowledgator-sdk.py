@@ -430,6 +430,7 @@ res = kg.finetuning.get_metrics(
 )
 
 print(res)  # Outputs ListMetricsResponse
+```
 
 ## Open Models
 

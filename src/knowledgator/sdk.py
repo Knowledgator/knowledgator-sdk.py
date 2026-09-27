@@ -8,10 +8,9 @@ from .apis import (
     ExtractAPI,
     DatasetsAPI,
     InstructAPI,
+    OpenModelAPI,
     ComprehendAPI,
     FinetuningAPI,
-    FinetuningAPI,
-    OpenModelAPI,
     EndpointsConfig,
 )
 from .configs import SERVERS, SDKConfigs, ServersConfigs, RetryPolicyConfigs
