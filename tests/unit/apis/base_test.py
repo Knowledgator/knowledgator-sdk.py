@@ -236,6 +236,7 @@ def test_instruct_retry_policy():
 
 def test_base_api_send_params_none():
     from unittest.mock import MagicMock
+
     configs = SDKConfigs()
     configs.client = MagicMock()
     api = BaseAPI(configs)
@@ -250,4 +251,3 @@ def test_base_api_send_params_none():
     configs.client.request.assert_called_once()
     kwargs = configs.client.request.call_args.kwargs
     assert kwargs["params"] is None
-

@@ -123,6 +123,7 @@ class BaseAPI:
                 raw_path = raw_path.replace(f"{{{k}}}", safe_val)
 
         import re
+
         clean_path = re.sub(r"/{2,}", "/", raw_path.lstrip("/"))
         url = urllib.parse.urljoin(base_url, clean_path)
 

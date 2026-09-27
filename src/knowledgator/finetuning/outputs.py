@@ -1,7 +1,8 @@
 """Output models for fine-tuning API responses."""
 
 from typing import Any, Dict, List, Optional
-from pydantic import AliasChoices, ConfigDict, Field, BaseModel, model_validator
+
+from pydantic import Field, BaseModel, ConfigDict, AliasChoices, model_validator
 
 
 class TrainingModel(BaseModel):
@@ -195,4 +196,3 @@ class ListMetricsResponse(BaseModel):
     total: Optional[int] = Field(default=None, description="Total number of data points")
     offset: Optional[int] = Field(default=None, description="Current pagination offset")
     limit: Optional[int] = Field(default=None, description="Current pagination limit")
-

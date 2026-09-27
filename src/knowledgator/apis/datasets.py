@@ -1,4 +1,4 @@
-from typing import Any, Union, Mapping, BinaryIO, Optional, List
+from typing import Any, List, Union, Mapping, BinaryIO, Optional
 from dataclasses import dataclass
 
 import httpx
@@ -125,9 +125,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.list: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -218,9 +216,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.create: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -261,9 +257,7 @@ class DatasetsAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -285,9 +279,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.get: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.get: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -337,13 +329,9 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest(
-                "At least one field (name or description) must be provided for update"
-            )
+            raise BadRequest("At least one field (name or description) must be provided for update")
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -366,9 +354,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.update: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -395,9 +381,7 @@ class DatasetsAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -419,9 +403,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.delete: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -459,9 +441,7 @@ class DatasetsAPI(BaseAPI):
         else:
             files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -484,9 +464,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.upload: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -544,9 +522,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_formats: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.list_formats: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -556,9 +532,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_formats: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.list_formats: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -638,9 +612,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.list_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -697,9 +669,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create_data: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.create_data: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -709,9 +679,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.create_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -737,9 +705,7 @@ class DatasetsAPI(BaseAPI):
         """
         Get raw data details by ID.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -761,9 +727,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.get_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.get_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -798,13 +762,9 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest(
-                "At least one field (name or description) must be provided for update"
-            )
+            raise BadRequest("At least one field (name or description) must be provided for update")
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -817,9 +777,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update_data: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.update_data: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -829,9 +787,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.update_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -846,9 +802,7 @@ class DatasetsAPI(BaseAPI):
         """
         Delete a raw data entry.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -860,9 +814,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete_data: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.delete_data: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -872,9 +824,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.delete_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -892,9 +842,7 @@ class DatasetsAPI(BaseAPI):
         """
         files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -907,9 +855,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload_data: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.upload_data: %s %s", request.method, request.url)
 
         try:
             response = self.send(request)
@@ -919,9 +865,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload_data: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.upload_data: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -975,9 +919,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.list_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -987,9 +929,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.list_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1047,9 +987,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.create_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1059,9 +997,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.create_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1085,9 +1021,7 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> Dataset:
         """Async version of get()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -1109,9 +1043,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.get_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.get_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1144,13 +1076,9 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest(
-                "At least one field (name or description) must be provided for update"
-            )
+            raise BadRequest("At least one field (name or description) must be provided for update")
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -1163,9 +1091,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.update_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1175,9 +1101,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.update_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1190,9 +1114,7 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Async version of delete()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -1204,9 +1126,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.delete_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1216,9 +1136,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.delete_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1237,9 +1155,7 @@ class DatasetsAPI(BaseAPI):
         else:
             files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(
-            dataset_id=dataset_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload}".format(dataset_id=dataset_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -1252,9 +1168,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.upload_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1264,9 +1178,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.upload_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1306,9 +1218,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_formats_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.list_formats_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1371,9 +1281,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.list_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.list_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1442,9 +1350,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.create_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.create_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1482,9 +1388,7 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> Data:
         """Async version of get_data()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="GET",
             path=path,
@@ -1496,9 +1400,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.get_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.get_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1508,9 +1410,7 @@ class DatasetsAPI(BaseAPI):
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.get_data_async: %s ← %s", response.status_code, request.url
-            )
+            self._log.debug("DatasetsAPI.get_data_async: %s ← %s", response.status_code, request.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -1543,13 +1443,9 @@ class DatasetsAPI(BaseAPI):
             json_body["description"] = description
 
         if not json_body:
-            raise BadRequest(
-                "At least one field (name or description) must be provided for update"
-            )
+            raise BadRequest("At least one field (name or description) must be provided for update")
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.update_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="PATCH",
             path=path,
@@ -1562,9 +1458,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.update_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.update_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1591,9 +1485,7 @@ class DatasetsAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> None:
         """Async version of delete_data()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.delete_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="DELETE",
             path=path,
@@ -1605,9 +1497,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.delete_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.delete_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)
@@ -1637,9 +1527,7 @@ class DatasetsAPI(BaseAPI):
         """Async version of upload_data()."""
         files_payload = {"file": ("file", file)}
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(
-            data_id=data_id
-        ).rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.upload_data}".format(data_id=data_id).rstrip("/")
         request = self._make_request(
             method="POST",
             path=path,
@@ -1652,9 +1540,7 @@ class DatasetsAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug(
-                "DatasetsAPI.upload_data_async: %s %s", request.method, request.url
-            )
+            self._log.debug("DatasetsAPI.upload_data_async: %s %s", request.method, request.url)
 
         try:
             response = await self.send_async(request)

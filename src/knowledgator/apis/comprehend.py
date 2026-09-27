@@ -64,9 +64,7 @@ class ComprehendAPI(BaseAPI):
             labels=raw.get("labels", labels_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback
-                if threshold_fallback is not None
-                else self.DEFAULT_THRESHOLD,
+                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )

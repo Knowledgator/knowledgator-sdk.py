@@ -90,9 +90,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(
-                    f"Invalid JSON in template: {exc}", payload={"template": template}
-                ) from exc
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -113,9 +111,7 @@ class InstructAPI(BaseAPI):
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
-                files_payload = {
-                    f.name: (f.name, f.content) for f in files_with_content
-                }
+                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
 
         main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
         path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
@@ -160,9 +156,7 @@ class InstructAPI(BaseAPI):
         except ValueError:
             raw_text = response.text
             if self._log:
-                self._log.debug(
-                    "InstructAPI: Non-JSON response, wrapping as string output"
-                )
+                self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")
             return InstructResults.from_model_response(raw_text)
 
         try:
@@ -221,9 +215,7 @@ class InstructAPI(BaseAPI):
             try:
                 json.loads(template)
             except json.JSONDecodeError as exc:
-                raise BadRequest(
-                    f"Invalid JSON in template: {exc}", payload={"template": template}
-                ) from exc
+                raise BadRequest(f"Invalid JSON in template: {exc}", payload={"template": template}) from exc
 
         # Build form data payload
         data_payload = {"text": text}
@@ -244,9 +236,7 @@ class InstructAPI(BaseAPI):
         if files:
             files_with_content = [f for f in files if f.content is not None]
             if files_with_content:
-                files_payload = {
-                    f.name: (f.name, f.content) for f in files_with_content
-                }
+                files_payload = {f.name: (f.name, f.content) for f in files_with_content}
 
         main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
         path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
@@ -291,9 +281,7 @@ class InstructAPI(BaseAPI):
         except ValueError:
             raw_text = response.text
             if self._log:
-                self._log.debug(
-                    "InstructAPI: Non-JSON response, wrapping as string output"
-                )
+                self._log.debug("InstructAPI: Non-JSON response, wrapping as string output")
             return InstructResults.from_model_response(raw_text)
 
         try:

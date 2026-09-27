@@ -51,9 +51,7 @@ class OpenModelAPI(BaseAPI):
         response = self.send(request)
         return response.json()
 
-    async def predict_async(
-        self, body: dict[str, Any], timeout_ms: Optional[int] = None
-    ) -> Any:
+    async def predict_async(self, body: dict[str, Any], timeout_ms: Optional[int] = None) -> Any:
         """
         Asynchronously send a prediction request to the model's root inference endpoint.
         """
@@ -77,9 +75,7 @@ class OpenModelAPI(BaseAPI):
         response = await self.send_async(request)
         return response.json()
 
-    def call(
-        self, method: str, body: dict[str, Any], timeout_ms: Optional[int] = None
-    ) -> Any:
+    def call(self, method: str, body: dict[str, Any], timeout_ms: Optional[int] = None) -> Any:
         """
         Send a request to a specific method of the model:
         POST /inference/{model_id}/{method}/
@@ -104,9 +100,7 @@ class OpenModelAPI(BaseAPI):
         response = self.send(request)
         return response.json()
 
-    async def call_async(
-        self, method: str, body: dict[str, Any], timeout_ms: Optional[int] = None
-    ) -> Any:
+    async def call_async(self, method: str, body: dict[str, Any], timeout_ms: Optional[int] = None) -> Any:
         """
         Asynchronously send a request to a specific method of the model.
         """

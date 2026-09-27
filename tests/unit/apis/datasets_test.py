@@ -604,5 +604,3 @@ class TestDatasetsAPIAsyncMockRequests:
         assert res["id"] == "gen-ds-async-1"
         assert res["status"] == "started"
         assert res["num_samples"] == 5
-
-

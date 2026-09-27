@@ -1,6 +1,6 @@
 """Output models for datasets API responses."""
 
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union, Optional
 
 from pydantic import Field, BaseModel, AliasChoices
 
@@ -18,24 +18,16 @@ class Dataset(BaseModel):
         validation_alias=AliasChoices("description", "short_description"),
         description="Dataset description",
     )
-    short_description: Optional[str] = Field(
-        default=None, description="Short dataset description"
-    )
+    short_description: Optional[str] = Field(default=None, description="Short dataset description")
     created_at: str = Field(..., description="Creation timestamp")
     updated_at: str = Field(..., description="Last update timestamp")
-    file_count: Optional[int] = Field(
-        default=None, description="Number of files in dataset"
-    )
+    file_count: Optional[int] = Field(default=None, description="Number of files in dataset")
     total_size: Optional[int] = Field(default=None, description="Total size in bytes")
     created_by: Optional[str] = Field(default=None, description="Creator user ID")
-    examples_count: Optional[int] = Field(
-        default=None, description="Number of examples"
-    )
+    examples_count: Optional[int] = Field(default=None, description="Number of examples")
     source: Optional[str] = Field(default=None, description="Dataset source")
     files: Optional[List[Any]] = Field(default=None, description="Dataset files")
-    generation_status: Optional[Any] = Field(
-        default=None, description="Generation status"
-    )
+    generation_status: Optional[Any] = Field(default=None, description="Generation status")
 
 
 class ListDatasetsResponse(BaseModel):

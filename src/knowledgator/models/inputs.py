@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import AliasChoices, ConfigDict, Field, BaseModel, constr, confloat
+from pydantic import Field, BaseModel, ConfigDict, AliasChoices, constr, confloat
 
 from .common import FileMetadata
 
