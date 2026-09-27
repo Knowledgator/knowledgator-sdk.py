@@ -14,6 +14,7 @@ from ..exceptions import (
 )
 from ..models.common import FileMetadata
 from ..models.outputs import InstructResults
+from ..utils.dictionaries_op import get_model_id_header
 
 
 @dataclass
@@ -116,11 +117,10 @@ class InstructAPI(BaseAPI):
         main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
         path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
@@ -241,11 +241,10 @@ class InstructAPI(BaseAPI):
         main_endpoint = self.ENDPOINTS_CONFIG.main.strip("/")
         path = f"{self.PATH.rstrip('/')}/{main_endpoint}/" if main_endpoint else self.PATH
 
-        headers = {}
-        if http_headers:
-            headers.update(http_headers)
-        if model_id:
-            headers["KnowledgatorAPI-Model-ID"] = model_id
+        headers = {
+            **(http_headers or {}),
+            **get_model_id_header(model_id),
+        }
 
         request = self._make_request(
             method=self.METHOD,
