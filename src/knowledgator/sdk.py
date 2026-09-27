@@ -35,9 +35,7 @@ class BaseKnowledgator:
         retry_config: Optional[RetryPolicyConfigs] = None,
     ):
         if retry_config is None:
-            self.retry_config = RetryPolicyConfigs(
-                max_tries=max_tries, base_delay=base_delay, max_delay=max_delay
-            )
+            self.retry_config = RetryPolicyConfigs(max_tries=max_tries, base_delay=base_delay, max_delay=max_delay)
         else:
             self.retry_config = retry_config
 
@@ -56,21 +54,15 @@ class BaseKnowledgator:
         finetuning_endpoints: Optional[EndpointsConfig] = None,
     ) -> None:
         """Instantiate low‑level API helpers with custom endpoint configs."""
-        self.comprehend = ComprehendAPI(
-            comprehend_cfg, endpoints_config=comprehend_endpoints
-        )
+        self.comprehend = ComprehendAPI(comprehend_cfg, endpoints_config=comprehend_endpoints)
         self.extract = ExtractAPI(extract_cfg, endpoints_config=extract_endpoints)
         self.instruct = InstructAPI(instruct_cfg, endpoints_config=instruct_endpoints)
         if datasets_cfg is not None:
-            self.datasets = DatasetsAPI(
-                datasets_cfg, endpoints_config=datasets_endpoints
-            )
+            self.datasets = DatasetsAPI(datasets_cfg, endpoints_config=datasets_endpoints)
         else:
             self.datasets = None
         if finetuning_cfg is not None:
-            self.finetuning = FinetuningAPI(
-                finetuning_cfg, endpoints_config=finetuning_endpoints
-            )
+            self.finetuning = FinetuningAPI(finetuning_cfg, endpoints_config=finetuning_endpoints)
         else:
             self.finetuning = None
 
@@ -88,14 +80,13 @@ class BaseKnowledgator:
     async def aclose(self) -> None:
         """Close the underlying async client (works with real clients *and* mocks)."""
         client = self.configs.async_client
-        if (
-            client
-            and not self.configs.async_client_supplied
-            and not self._is_closed(client)  # helper from previous fix
-        ):
-            result = client.aclose()  # call it first
-            if inspect.isawaitable(result):  # only await real coroutines
-                await result
+        if client and not self.configs.async_client_supplied and not self._is_closed(client):
+            if hasattr(client, "aclose"):
+                result = client.aclose()
+                if inspect.isawaitable(result):
+                    await result
+            elif hasattr(client, "close"):
+                client.close()
 
     async def __aenter__(self) -> BaseKnowledgator:
         return self
@@ -160,9 +151,7 @@ class Knowledgator(BaseKnowledgator):
             if server_url is not None:
                 servers_configs.servers[server_alias] = server_url
 
-            base_headers = self._get_base_headers(
-                servers_configs, server_alias, api_key
-            )
+            base_headers = self._get_base_headers(servers_configs, server_alias, api_key)
             if server_base_headers:
                 base_headers.update(server_base_headers)
 

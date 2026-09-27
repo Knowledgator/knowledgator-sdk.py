@@ -83,12 +83,18 @@ class BaseAPI:
 
             self.configs.async_client_supplied = False
 
-    def _headers(self, extra: Mapping[str, str] | None) -> dict[str, str]:
-        headers = {
-            **self.base_headers,
-            **(remove_none_from_dict(extra) if extra else {}),
-        }
-        raw_headers: list[tuple[bytes, bytes]] = [(k.encode("ascii"), str(v).encode()) for k, v in headers.items()]
+    def _headers(self, extra: Mapping[str, str] | None) -> list[tuple[bytes, bytes, bytes]]:
+        if extra is None:
+            headers = self.base_headers
+        else:
+            headers = {**self.base_headers, **remove_none_from_dict(extra)}
+        dedup_headers: dict[str, tuple[str, str]] = {}
+        for k, v in headers.items():
+            dedup_headers[k.lower()] = (k, str(v))
+        raw_headers: list[tuple[bytes, bytes, bytes]] = [
+            (orig_k.encode("ascii"), lower_k.encode("ascii"), val.encode("utf-8"))
+            for lower_k, (orig_k, val) in dedup_headers.items()
+        ]
         return raw_headers
 
     def _make_request(
@@ -116,13 +122,16 @@ class BaseAPI:
                 safe_val = urllib.parse.quote(str(v), safe="")
                 raw_path = raw_path.replace(f"{{{k}}}", safe_val)
 
-        url = urllib.parse.urljoin(base_url, raw_path.lstrip("/"))
+        import re
+
+        clean_path = re.sub(r"/{2,}", "/", raw_path.lstrip("/"))
+        url = urllib.parse.urljoin(base_url, clean_path)
 
         extra_headers: MutableMapping[str, str] = {}
         if headers:
             extra_headers.update(headers)
         if accept is not None:
-            extra_headers["Content-Type"] = accept
+            extra_headers["Accept"] = accept
         if user_agent is not None:
             extra_headers["User-Agent"] = user_agent
         final_headers = self._headers(extra_headers)
@@ -155,20 +164,22 @@ class BaseAPI:
                 extensions["_body_kind"] = body_kind
                 extensions["_body_value"] = files
 
-        # For multipart, don't pass anything to httpx.Request, handle in send()
-        if body_kind == "multipart":
+        # For multipart or None, don't pass body to httpx.Request
+        if body_kind is None or body_kind == "multipart":
             body_kwargs = {}
         else:
-            body_kwargs = {extensions.get("_body_kind", "data"): extensions.get("_body_value")}
+            body_kwargs = {body_kind: extensions.get("_body_value")}
 
         req = httpx.Request(
             method=method,
             url=url,
             params=query_params,
-            headers=final_headers,
+            headers={k.decode("ascii"): v.decode("utf-8") for k, _, v in final_headers},
             **body_kwargs,
             extensions=extensions or None,
         )
+        # Preserve exact byte case of headers for HTTP wire transmission
+        req.headers._list = final_headers
 
         if self._log:
             self._log.debug(
@@ -182,9 +193,9 @@ class BaseAPI:
         return req
 
     def send(self, request: httpx.Request) -> httpx.Response:
-        """Send *request* synchronously using the configured `HttpClient`.
-
-        Inherits its retry / timeout behaviour.
+        """
+        Synchronously send *request* using the configured `HttpClient`,
+        inheriting its retry / timeout behaviour.
         """
         if self.configs.client is None:
             raise RuntimeError("Synchronous client is not initialised")
@@ -208,16 +219,21 @@ class BaseAPI:
         elif body_kind == "multipart":
             # Both data and files for multipart/form-data
             body_params["data"] = extensions.get("_data_value")
-            body_params["files"] = extensions.get("_files_value")
+            if extensions.get("_files_value") is not None:
+                body_params["files"] = extensions.get("_files_value")
         else:
             body_params["data"] = request.content
+
+        headers = request.headers.copy()
+        headers.pop("content-length", None)
+        headers.pop("Content-Length", None)
 
         response = self.configs.client.request(
             url=request.url,
             method=request.method,
             path=None,
-            params=request.url.params,
-            headers=request.headers,
+            params=None,
+            headers=headers,
             timeout=extensions.get("timeout"),
             **body_params,
         )
@@ -234,7 +250,9 @@ class BaseAPI:
         return response
 
     async def send_async(self, request: httpx.Request) -> httpx.Response:
-        """Send *request* asynchronously using the configured `AsyncHttpClient`."""
+        """
+        Asynchronously send *request* using the configured `AsyncHttpClient`.
+        """
         if self.configs.async_client is None:
             raise RuntimeError("Asynchronous client is not initialised")
 
@@ -256,16 +274,21 @@ class BaseAPI:
         elif body_kind == "multipart":
             # Both data and files for multipart/form-data
             body_params["data"] = extensions.get("_data_value")
-            body_params["files"] = extensions.get("_files_value")
+            if extensions.get("_files_value") is not None:
+                body_params["files"] = extensions.get("_files_value")
         else:
             body_params["data"] = request.content
+
+        headers = request.headers.copy()
+        headers.pop("content-length", None)
+        headers.pop("Content-Length", None)
 
         response = await self.configs.async_client.request(
             url=request.url,
             method=request.method,
             path=None,
-            params=request.url.params,
-            headers=dict(request.headers),
+            params=None,
+            headers=headers,
             timeout=extensions.get("timeout"),
             **body_params,
         )

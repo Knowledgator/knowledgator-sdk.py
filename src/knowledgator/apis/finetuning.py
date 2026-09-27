@@ -198,7 +198,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"models": raw}
             return ListModelsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -325,7 +327,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"tags": raw}
             return ListTagsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -344,6 +348,8 @@ class FinetuningAPI(BaseAPI):
         model_id: str,
         dataset_id: str,
         hyperparameters: Optional[dict[str, Any]] = None,
+        type: str = "model",
+        validation_dataset_id: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -355,6 +361,8 @@ class FinetuningAPI(BaseAPI):
             model_id: Base model identifier (2-64 chars, alphanumeric with hyphens).
             dataset_id: Dataset identifier (2-64 chars, alphanumeric with hyphens).
             hyperparameters: Optional training hyperparameters (epochs, batch_size, learning_rate, etc.).
+            type: Service/training type (default: "model").
+            validation_dataset_id: Optional validation dataset identifier.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
@@ -368,9 +376,16 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        json_body = {"model_id": model_id, "dataset_id": dataset_id}
-        if hyperparameters is not None:
-            json_body["hyperparameters"] = hyperparameters
+        json_body: dict[str, Any] = {
+            "parent_model_id": model_id,
+            "type": type,
+            "training": {
+                "dataset_id": dataset_id,
+                "args": hyperparameters or {},
+            },
+        }
+        if validation_dataset_id:
+            json_body["validation"] = {"dataset_id": validation_dataset_id}
 
         path = f"{self.PATH}{self.ENDPOINTS_CONFIG.start_training}".rstrip("/")
         request = self._make_request(
@@ -488,7 +503,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"trainings": raw}
             return ListTrainingsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -732,7 +749,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"events": raw}
             return ListEventsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -806,7 +825,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"data": raw}
             return ListMetricsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -928,7 +949,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"models": raw}
             return ListModelsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -1031,7 +1054,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"tags": raw}
             return ListTagsResponse(**raw)
         except Exception as exc:
             raise ServerError(
@@ -1050,14 +1075,23 @@ class FinetuningAPI(BaseAPI):
         model_id: str,
         dataset_id: str,
         hyperparameters: Optional[dict[str, Any]] = None,
+        type: str = "model",
+        validation_dataset_id: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> TrainingObject:
         """Async version of start_training()."""
-        json_body = {"model_id": model_id, "dataset_id": dataset_id}
-        if hyperparameters is not None:
-            json_body["hyperparameters"] = hyperparameters
+        json_body: dict[str, Any] = {
+            "parent_model_id": model_id,
+            "type": type,
+            "training": {
+                "dataset_id": dataset_id,
+                "args": hyperparameters or {},
+            },
+        }
+        if validation_dataset_id:
+            json_body["validation"] = {"dataset_id": validation_dataset_id}
 
         path = f"{self.PATH}{self.ENDPOINTS_CONFIG.start_training}".rstrip("/")
         request = self._make_request(
@@ -1155,7 +1189,9 @@ class FinetuningAPI(BaseAPI):
             raise from_http_response(response)
 
         try:
-            raw: dict[str, Any] = response.json()
+            raw = response.json()
+            if isinstance(raw, list):
+                raw = {"trainings": raw}
             return ListTrainingsResponse(**raw)
         except Exception as exc:
             raise ServerError(

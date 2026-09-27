@@ -59,7 +59,7 @@ class TestExtractGeneralAPIMockRequests:
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
         assert call_kwargs["json"]["text"] == "Apple Inc. announced new products in California."
-        assert call_kwargs["json"]["labels"] == ["person", "organization", "location"]
+        assert call_kwargs["json"]["entities"] == ["person", "organization", "location"]
         # threshold should use default if not provided
         assert "threshold" not in call_kwargs["json"] or call_kwargs["json"]["threshold"] == 0.5
         assert "prompt" not in call_kwargs["json"]
@@ -194,7 +194,7 @@ class TestExtractGeneralAPIMockRequests:
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
         assert call_kwargs["json"]["text"] == "Dr. Smith published research on AI"
-        assert len(call_kwargs["json"]["labels"]) == 3
+        assert len(call_kwargs["json"]["entities"]) == 3
         assert call_kwargs["json"]["threshold"] == 0.6
         assert call_kwargs["json"]["prompt"] == "Extract entities related to research"
 
@@ -541,8 +541,8 @@ class TestExtractAPIAsyncMockRequests:
         }
         mock_response.headers = {}
 
-        # Mock the send method directly
-        with patch.object(api, "send", new=AsyncMock(return_value=mock_response)):
+        # Mock the send_async method directly
+        with patch.object(api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await api.it_async(text="Amazon launches new service", labels=["organization", "product"])
 
             assert result.results[0].span == "Amazon"
@@ -567,8 +567,8 @@ class TestExtractAPIAsyncMockRequests:
         }
         mock_response.headers = {}
 
-        # Mock the send method directly
-        with patch.object(api, "send", new=AsyncMock(return_value=mock_response)):
+        # Mock the send_async method directly
+        with patch.object(api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await api.relations_async(
                 text="Bob works for Apple", entities=["person", "organization"], relations=["works_for"]
             )
@@ -586,8 +586,8 @@ class TestExtractAPIAsyncMockRequests:
         mock_response.json.return_value = {"summary": "Brief async summary of the document."}
         mock_response.headers = {}
 
-        # Mock the send method directly
-        with patch.object(api, "send", new=AsyncMock(return_value=mock_response)):
+        # Mock the send_async method directly
+        with patch.object(api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await api.summary_async(text="Long document to summarize asynchronously")
 
             assert result.summary == "Brief async summary of the document."

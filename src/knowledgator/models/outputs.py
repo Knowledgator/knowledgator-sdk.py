@@ -34,7 +34,7 @@ class TextSpan(BaseModel):
 class ComprehendResults(BaseModel):
     results: List[ComprehendResponse] = Field(..., description="List of classification results")
     input_text: str = Field(..., description="Original input text")
-    labels: List[str] = Field(..., description="Labels used for classification", min_items=1)
+    labels: List[str] = Field(..., description="Labels used for classification", min_length=1)
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
     status: str = Field(..., description="Status of the classification request")
 
@@ -42,7 +42,7 @@ class ComprehendResults(BaseModel):
 class ExtractBaseResults(BaseModel):
     results: List[EntityResponse] = Field(..., description="List of extracted entities")
     input_text: str = Field(..., description="Original input text")
-    labels: List[str] = Field(..., description="Labels used for classification", min_items=1)
+    labels: List[str] = Field(..., description="Labels used for classification", min_length=1)
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
     status: str = Field(..., description="Status of the classification request")
 
@@ -50,8 +50,8 @@ class ExtractBaseResults(BaseModel):
 class ExtractRelationsResults(BaseModel):
     results: List[RelationResponse] = Field(..., description="List of extracted relations")
     input_text: str = Field(..., description="Original input text")
-    entities: List[str] = Field(..., description="Entities used for relation extraction", min_items=1)
-    relations: List[str] = Field(..., description="Relations used for extraction", min_items=1)
+    entities: List[str] = Field(..., description="Entities used for relation extraction", min_length=1)
+    relations: List[str] = Field(..., description="Relations used for extraction", min_length=1)
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
     status: str = Field(..., description="Status of the relation extraction request")
 

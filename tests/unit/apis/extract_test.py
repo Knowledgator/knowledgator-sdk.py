@@ -386,7 +386,7 @@ class TestExtractAPIAsync:
         mock_response.headers = {}
 
         # Mock the send method directly with AsyncMock
-        with patch.object(extract_api, "send", new=AsyncMock(return_value=mock_response)):
+        with patch.object(extract_api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await extract_api.it_async(text="Google develops AI", labels=["organization", "technology"])
 
             assert result.results[0].span == "Google"
@@ -397,7 +397,7 @@ class TestExtractAPIAsync:
         """Test async timeout handling."""
         # Mock the send method to raise timeout
         with (
-            patch.object(extract_api, "send", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))),
+            patch.object(extract_api, "send_async", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))),
             pytest.raises(TransportTimeout),
         ):
             await extract_api.it_async(text="Test", labels=["entity1", "entity2"])
@@ -420,7 +420,7 @@ class TestExtractAPIAsync:
         mock_response.headers = {}
 
         # Mock the send method directly
-        with patch.object(extract_api, "send", new=AsyncMock(return_value=mock_response)):
+        with patch.object(extract_api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await extract_api.relations_async(
                 text="Alice works for IBM", entities=["person", "organization"], relations=["works_for"]
             )
@@ -437,7 +437,7 @@ class TestExtractAPIAsync:
         mock_response.headers = {}
 
         # Mock the send method directly
-        with patch.object(extract_api, "send", new=AsyncMock(return_value=mock_response)):
+        with patch.object(extract_api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await extract_api.summary_async(text="Long document to summarize")
 
             assert result.summary == "Brief summary of the content."

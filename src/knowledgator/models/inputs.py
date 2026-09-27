@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, BaseModel, constr, confloat
+from pydantic import Field, BaseModel, ConfigDict, AliasChoices, constr, confloat
 
 from .common import FileMetadata
 
@@ -12,7 +12,7 @@ class ClassificationExample(BaseModel):
 
 class TextLabels(BaseModel):
     text: constr(min_length=1) = Field(..., description="Input text")
-    labels: List[str] = Field(..., description="Labels for classification/recogntiion", min_items=1)
+    labels: List[str] = Field(..., description="Labels for classification/recogntiion", min_length=1)
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
 
 
@@ -24,8 +24,16 @@ class ComprehendRequest(BaseModel):
 
 
 class ExtractBaseRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     text: str
-    labels: List[str]
+    labels: List[str] = Field(
+        ...,
+        alias="entities",
+        serialization_alias="entities",
+        validation_alias=AliasChoices("entities", "labels"),
+        description="Entities/labels for extraction",
+    )
     threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
     prompt: Optional[str] = None
 
