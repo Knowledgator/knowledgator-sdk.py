@@ -74,6 +74,16 @@ class ListFormatsResponse(BaseModel):
     limit: Optional[int] = Field(default=100, description="Current pagination limit")
 
 
+class DataFile(BaseModel):
+    """File attachment object in raw data."""
+
+    id: str = Field(..., description="File ID")
+    created_by_oauth_id: Optional[str] = Field(default=None, description="OAuth creator ID")
+    created_at: Optional[str] = Field(default=None, description="Creation timestamp")
+    updated_at: Optional[str] = Field(default=None, description="Update timestamp")
+    size: Optional[int] = Field(default=None, description="File size in bytes")
+
+
 class Data(BaseModel):
     """Raw data object with full details."""
 
@@ -81,18 +91,24 @@ class Data(BaseModel):
     name: str = Field(..., description="Data name")
     type: str = Field(..., description="Service type")
     format: str = Field(..., description="Data format")
-    # status: str = Field(..., description="Data status") # Raw data might not have status like datasets
-    description: Optional[str] = Field(default=None, description="Data description")
-    created_at: str = Field(..., description="Creation timestamp")
-    updated_at: str = Field(..., description="Last update timestamp")
+    description: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("description", "short_description"),
+        description="Data description",
+    )
+    short_description: Optional[str] = Field(default=None, description="Short data description")
+    created_by_oauth_id: Optional[str] = Field(default=None, description="OAuth creator ID")
+    created_at: Optional[str] = Field(default=None, description="Creation timestamp")
+    updated_at: Optional[str] = Field(default=None, description="Last update timestamp")
     file_count: Optional[int] = Field(default=None, description="Number of files")
     total_size: Optional[int] = Field(default=None, description="Total size in bytes")
+    files: Optional[List[DataFile]] = Field(default=None, description="Data files")
 
 
 class ListDataResponse(BaseModel):
     """Response model for listing raw data."""
 
-    data: List[Data] = Field(..., description="List of raw data")
-    total: int = Field(..., description="Total number of data items matching filters")
-    offset: int = Field(..., description="Current pagination offset")
-    limit: int = Field(..., description="Current pagination limit")
+    data: List[Data] = Field(default_factory=list, description="List of raw data")
+    total: int = Field(0, description="Total number of data items matching filters")
+    offset: Optional[int] = Field(default=0, description="Current pagination offset")
+    limit: Optional[int] = Field(default=100, description="Current pagination limit")

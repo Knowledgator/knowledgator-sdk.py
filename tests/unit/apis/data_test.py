@@ -67,6 +67,50 @@ class TestDataAPIMockRequests:
         assert result.data[0].name == "my-raw-data"
         assert result.total == 1
 
+    def test_list_data_server_payload_with_short_description_and_files(self, api):
+        """Test parsing actual API server response for GET /data/."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "total": 1,
+            "data": [
+                {
+                    "id": "data-server-1",
+                    "name": "server-data-item",
+                    "type": "comprehend-it",
+                    "format": "json",
+                    "short_description": "Server short description text",
+                    "created_by_oauth_id": "oauth-user-999",
+                    "created_at": "2026-09-01T00:00:00Z",
+                    "updated_at": "2026-09-01T00:00:00Z",
+                    "files": [
+                        {
+                            "id": "file-abc",
+                            "created_by_oauth_id": "oauth-user-999",
+                            "created_at": "2026-09-01T00:00:00Z",
+                            "updated_at": "2026-09-01T00:00:00Z",
+                            "size": 2048,
+                        }
+                    ],
+                }
+            ],
+        }
+        mock_response.headers = {}
+        api.configs.client.request.return_value = mock_response
+
+        result = api.list_data()
+
+        assert len(result.data) == 1
+        item = result.data[0]
+        assert item.id == "data-server-1"
+        assert item.description == "Server short description text"
+        assert item.created_by_oauth_id == "oauth-user-999"
+        assert item.files is not None and len(item.files) == 1
+        assert item.files[0].id == "file-abc"
+        assert item.files[0].size == 2048
+        assert result.offset == 0
+        assert result.limit == 100
+
     def test_create_data(self, api):
         """Test creating raw data."""
         mock_response = MagicMock()
