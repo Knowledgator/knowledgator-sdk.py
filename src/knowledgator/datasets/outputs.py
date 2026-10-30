@@ -1,6 +1,6 @@
 """Output models for datasets API responses."""
 
-from typing import Any, List, Union, Optional
+from typing import Any, List, Optional, Union
 
 from pydantic import Field, BaseModel, AliasChoices
 
@@ -47,11 +47,11 @@ class DatasetCreationResponse(BaseModel):
     """Response model after creating or uploading to a dataset."""
 
     id: str = Field(..., description="Dataset identifier")
-    name: str = Field(..., description="Dataset name")
-    type: str = Field(..., description="Service type")
-    format: str = Field(..., description="Dataset format")
     status: str = Field(..., description="Dataset status")
-    created_at: str = Field(..., description="Creation timestamp")
+    name: Optional[str] = Field(default=None, description="Dataset name")
+    type: Optional[str] = Field(default=None, description="Service type")
+    format: Optional[str] = Field(default=None, description="Dataset format")
+    created_at: Optional[str] = Field(default=None, description="Creation timestamp")
 
 
 class FormatTag(BaseModel):
@@ -96,8 +96,12 @@ class Data(BaseModel):
         validation_alias=AliasChoices("description", "short_description"),
         description="Data description",
     )
-    short_description: Optional[str] = Field(default=None, description="Short data description")
-    created_by_oauth_id: Optional[str] = Field(default=None, description="OAuth creator ID")
+    short_description: Optional[str] = Field(
+        default=None, description="Short data description"
+    )
+    created_by_oauth_id: Optional[str] = Field(
+        default=None, description="OAuth creator ID"
+    )
     created_at: Optional[str] = Field(default=None, description="Creation timestamp")
     updated_at: Optional[str] = Field(default=None, description="Last update timestamp")
     file_count: Optional[int] = Field(default=None, description="Number of files")
