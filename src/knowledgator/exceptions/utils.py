@@ -1,4 +1,15 @@
-from .base import _STATUS_MAP, APIError, ClientError, ServerError
+from .base import APIError, ClientError, ServerError
+from . import client_errors, server_errors
+
+
+def _get_status_map():
+    mapping = {}
+    for base_cls in (ClientError, ServerError):
+        for sub_cls in base_cls.__subclasses__():
+            code = getattr(sub_cls, "code", None)
+            if code is not None:
+                mapping[code] = sub_cls
+    return mapping
 
 
 def from_http_response(resp) -> APIError:
@@ -7,7 +18,8 @@ def from_http_response(resp) -> APIError:
 
     Accepts anything w/ .status_code, .json(), .text, .headers.
     """
-    cls = _STATUS_MAP.get(resp.status_code)
+    status_map = _get_status_map()
+    cls = status_map.get(resp.status_code)
     if cls is None:
         # Fallback class keeps hierarchy correct
         cls = ClientError if 400 <= resp.status_code < 500 else ServerError
