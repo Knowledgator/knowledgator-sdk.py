@@ -86,7 +86,10 @@ class HttpClient(BaseHttpClient):
         req_files = files
         req_headers = headers.copy() if headers else {}
         if isinstance(data, dict) and not files:
-            req_files = {k: (None, str(v)) if not isinstance(v, (tuple, list)) else v for k, v in data.items()}
+            req_files = {
+                k: (None, str(v)) if not isinstance(v, (tuple, list)) else v
+                for k, v in data.items()
+            }
             req_data = None
             req_headers.pop("content-type", None)
             req_headers.pop("Content-Type", None)
@@ -185,7 +188,10 @@ class AsyncHttpClient(BaseHttpClient):
         req_files = files
         req_headers = headers.copy() if headers else {}
         if isinstance(data, dict) and not files:
-            req_files = {k: (None, str(v)) if not isinstance(v, (tuple, list)) else v for k, v in data.items()}
+            req_files = {
+                k: (None, str(v)) if not isinstance(v, (tuple, list)) else v
+                for k, v in data.items()
+            }
             req_data = None
             req_headers.pop("content-type", None)
             req_headers.pop("Content-Type", None)

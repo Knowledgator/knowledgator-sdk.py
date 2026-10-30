@@ -74,7 +74,9 @@ class ExtractAPI(BaseAPI):
             labels=raw.get("labels") or raw.get("entities") or labels_fallback,
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -110,7 +112,9 @@ class ExtractAPI(BaseAPI):
             relations=raw.get("relations", relations_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -134,7 +138,9 @@ class ExtractAPI(BaseAPI):
             input_text=raw.get("input_text", text_fallback),
             threshold=raw.get(
                 "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
+                threshold_fallback
+                if threshold_fallback is not None
+                else self.DEFAULT_THRESHOLD,
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
@@ -499,7 +505,9 @@ class ExtractAPI(BaseAPI):
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
@@ -567,7 +575,9 @@ class ExtractAPI(BaseAPI):
 
         try:
             raw = response.json()
-            result_obj = self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
+            result_obj = self._parse_summary(
+                raw, text_fallback=text, threshold_fallback=threshold
+            )
         except (ValueError, PydanticValidationError) as exc:
             # Bad/malformed JSON *or* schema mismatch → treat as server fault
             raise ServerError(
