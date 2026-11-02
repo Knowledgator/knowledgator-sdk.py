@@ -221,8 +221,8 @@ class BaseAPI:
             body_params["data"] = extensions.get("_data_value")
             if extensions.get("_files_value") is not None:
                 body_params["files"] = extensions.get("_files_value")
-        else:
-            body_params["data"] = request.content
+        elif request.content:
+            body_params["content"] = request.content
 
         headers = request.headers.copy()
         headers.pop("content-length", None)
@@ -276,8 +276,8 @@ class BaseAPI:
             body_params["data"] = extensions.get("_data_value")
             if extensions.get("_files_value") is not None:
                 body_params["files"] = extensions.get("_files_value")
-        else:
-            body_params["data"] = request.content
+        elif request.content:
+            body_params["content"] = request.content
 
         headers = request.headers.copy()
         headers.pop("content-length", None)
