@@ -28,6 +28,10 @@ class BaseHttpClient:
     def _url(self, path: str | None) -> str:
         return urllib.parse.urljoin(self._base_url, path) if path else self._base_url
 
+    @property
+    def is_closed(self) -> bool:
+        return getattr(self._client, "is_closed", False)
+
 
 class HttpClient(BaseHttpClient):
     def __init__(
@@ -54,7 +58,11 @@ class HttpClient(BaseHttpClient):
         return self
 
     def __exit__(self, *exc):
-        self._client.close()
+        self.close()
+
+    def close(self) -> None:
+        if self._client is not None and not getattr(self._client, "is_closed", False):
+            self._client.close()
 
     def request(
         self,

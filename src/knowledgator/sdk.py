@@ -83,7 +83,8 @@ class BaseKnowledgator:
         """Close the underlying synchronous client."""
         client = self.configs.client
         if client and not self.configs.client_supplied and not self._is_closed(client):
-            client.close()
+            if hasattr(client, "close"):
+                client.close()
 
     async def aclose(self) -> None:
         """Close the underlying async client (works with real clients *and* mocks)."""
