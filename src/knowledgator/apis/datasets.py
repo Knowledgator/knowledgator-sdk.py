@@ -597,8 +597,9 @@ class DatasetsAPI(BaseAPI):
                     target_url = parsed["url"]
                 elif isinstance(parsed, str) and parsed.startswith(("http://", "https://")):
                     target_url = parsed
-            except Exception:
-                pass
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                if self._log:
+                    self._log.debug("Content marked as application/json was not a redirect URL: %s", exc)
 
         if target_url:
             if self._log:
@@ -1538,8 +1539,9 @@ class DatasetsAPI(BaseAPI):
                     target_url = parsed["url"]
                 elif isinstance(parsed, str) and parsed.startswith(("http://", "https://")):
                     target_url = parsed
-            except Exception:
-                pass
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                if self._log:
+                    self._log.debug("Content marked as application/json was not a redirect URL: %s", exc)
 
         if target_url:
             if self._log:
