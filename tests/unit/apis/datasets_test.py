@@ -116,7 +116,7 @@ class TestDatasetsAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        result = api.create(name="new-dataset", type="ner", format="jsonl", description="Test dataset")
+        result = api.create(name="new-dataset", type="ner", format="jsonl", short_description="Test dataset")
 
         # Verify request (multipart form-data)
         call_kwargs = api.configs.client.request.call_args.kwargs
@@ -124,7 +124,7 @@ class TestDatasetsAPIMockRequests:
         assert call_kwargs["data"]["name"] == "new-dataset"
         assert call_kwargs["data"]["type"] == "ner"
         assert call_kwargs["data"]["format"] == "jsonl"
-        assert call_kwargs["data"]["description"] == "Test dataset"
+        assert call_kwargs["data"]["short_description"] == "Test dataset"
         assert "files" not in call_kwargs  # No file uploaded
 
         # Verify response
@@ -216,11 +216,11 @@ class TestDatasetsAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        api.update("ds-123", description="New description")
+        api.update("ds-123", short_description="New description")
 
         # Verify request
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert call_kwargs["json"]["description"] == "New description"
+        assert call_kwargs["json"]["short_description"] == "New description"
         assert "name" not in call_kwargs["json"]
 
     def test_update_dataset_both_fields(self, api):
@@ -231,12 +231,12 @@ class TestDatasetsAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        api.update("ds-123", name="new-name", description="New description")
+        api.update("ds-123", name="new-name", short_description="New description")
 
         # Verify request
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert call_kwargs["json"]["name"] == "new-name"
-        assert call_kwargs["json"]["description"] == "New description"
+        assert call_kwargs["json"]["short_description"] == "New description"
 
     def test_update_dataset_no_fields_error(self, api):
         """Test that updating without any fields raises BadRequest."""
@@ -604,3 +604,5 @@ class TestDatasetsAPIAsyncMockRequests:
         assert res["id"] == "gen-ds-async-1"
         assert res["status"] == "started"
         assert res["num_samples"] == 5
+
+

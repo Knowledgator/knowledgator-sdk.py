@@ -217,10 +217,12 @@ class Knowledgator(BaseKnowledgator):
 
     def model(self, model_id: str, method: Optional[str] = None) -> OpenModelAPI:
         """
-        Create a client for an Open Model (dynamic model ID).
+        Create a client for an Open Model (standalone full model).
 
-        :param model_id: The ID of the model to access (e.g. 'my-finetuned-model')
-        :param method: Optional method name to use for predictions (e.g. 'generate')
+        Invokes POST /inference/{model_id}/ or POST /inference/{model_id}/{method}/.
+
+        :param model_id: The Open Model ID (e.g. 'm-d9be7ede307943439a30c6f814026566')
+        :param method: Optional method name to use for predictions (e.g. 'relations')
         :return: An initialized OpenModelAPI instance.
         """
         return OpenModelAPI(self.configs, model_id=model_id, method=method)

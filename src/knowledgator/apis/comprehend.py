@@ -77,12 +77,29 @@ class ComprehendAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         examples: Optional[List[Dict[str, str]]] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ComprehendResults:
+        """
+        Classify text using candidate labels.
+
+        Args:
+            text: Input text to classify.
+            labels: Candidate classification labels.
+            threshold: Optional score cut-off.
+            examples: Optional few-shot examples.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+        """
         body = ComprehendRequest(
             text=text,
             labels=labels,
@@ -93,7 +110,7 @@ class ComprehendAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -159,12 +176,29 @@ class ComprehendAPI(BaseAPI):
         labels: list[str],
         threshold: float | None = None,
         examples: list[dict[str, str]] | None = None,
-        model_id: str | None = None,
+        adapter_id: str | None = None,
         url_variables: Mapping[str, Any] | None = None,
         server_url: str | None = None,
         timeout_ms: int | None = None,
         http_headers: Mapping[str, str] | None = None,
     ) -> ComprehendResults:
+        """
+        Asynchronously classify text using candidate labels.
+
+        Args:
+            text: Input text to classify.
+            labels: Candidate classification labels.
+            threshold: Optional score cut-off.
+            examples: Optional few-shot examples.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
+        """
         body = ComprehendRequest(
             text=text,
             labels=labels,
@@ -175,7 +209,7 @@ class ComprehendAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(

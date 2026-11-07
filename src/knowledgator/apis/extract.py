@@ -151,12 +151,29 @@ class ExtractAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Extract named entities from input text.
+
+        Args:
+            text: Input text to extract entities from.
+            labels: Entity labels to extract.
+            threshold: Optional confidence score cut-off.
+            prompt: Optional prompt guidance.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+        """
         body = ExtractBaseRequest(
             text=text,
             labels=labels,
@@ -167,7 +184,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -225,12 +242,29 @@ class ExtractAPI(BaseAPI):
         labels: List[str],
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Asynchronously extract named entities from input text.
+
+        Args:
+            text: Input text to extract entities from.
+            labels: Entity labels to extract.
+            threshold: Optional confidence score cut-off.
+            prompt: Optional prompt guidance.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
+        """
         body = ExtractBaseRequest(
             text=text,
             labels=labels,
@@ -241,7 +275,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -301,12 +335,31 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Extract relations between entities from input text.
+
+        Args:
+            text: Input text.
+            entities: Entities list.
+            relations: Relation types list.
+            threshold: Optional confidence score cut-off.
+            prompt: Optional prompt guidance.
+            rules: Optional relation rules.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+        """
         body = ExtractRelationsRequest(
             text=text,
             entities=entities,
@@ -319,7 +372,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -380,12 +433,31 @@ class ExtractAPI(BaseAPI):
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Asynchronously extract relations between entities from input text.
+
+        Args:
+            text: Input text.
+            entities: Entities list.
+            relations: Relation types list.
+            threshold: Optional confidence score cut-off.
+            prompt: Optional prompt guidance.
+            rules: Optional relation rules.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
+        """
         body = ExtractRelationsRequest(
             text=text,
             entities=entities,
@@ -398,7 +470,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -456,12 +528,28 @@ class ExtractAPI(BaseAPI):
         text: str,
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Extract summary from input text.
+
+        Args:
+            text: Input text.
+            threshold: Optional score cut-off.
+            prompt: Optional prompt guidance.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+        """
         body = ExtractSummaryRequest(
             text=text,
             threshold=threshold,
@@ -472,7 +560,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -526,12 +614,28 @@ class ExtractAPI(BaseAPI):
         text: str,
         threshold: Optional[float] = None,
         prompt: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ExtractBaseResults:
+        """
+        Asynchronously extract summary from input text.
+
+        Args:
+            text: Input text.
+            threshold: Optional score cut-off.
+            prompt: Optional prompt guidance.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            url_variables: Optional URL path variables.
+            server_url: Optional server URL override.
+            timeout_ms: Optional request timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
+        """
         body = ExtractSummaryRequest(
             text=text,
             threshold=threshold,
@@ -542,7 +646,7 @@ class ExtractAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(

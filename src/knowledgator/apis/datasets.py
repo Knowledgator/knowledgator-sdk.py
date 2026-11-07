@@ -151,6 +151,7 @@ class DatasetsAPI(BaseAPI):
         type: str,
         format: str,
         short_description: Optional[str] = None,
+        parent_dataset_id: Optional[str] = None,
         file: Optional[Union[bytes, BinaryIO]] = None,
         file_path: Optional[Union[str, Path]] = None,
         server_url: Optional[str] = None,
@@ -165,6 +166,7 @@ class DatasetsAPI(BaseAPI):
             type: Service type (ner, text-classification, relation-extraction).
             format: Dataset format (jsonl, csv, parquet, json).
             short_description: Optional short dataset description (max 1024 characters).
+            parent_dataset_id: Optional parent dataset UUID for version tracking.
             file: Optional file content to upload (bytes or file-like object).
             file_path: Optional local filesystem path to stream dataset from.
             server_url: Optional server URL override.
@@ -189,6 +191,9 @@ class DatasetsAPI(BaseAPI):
 
         if short_description is not None:
             data_payload["short_description"] = short_description
+
+        if parent_dataset_id is not None and parent_dataset_id != "none":
+            data_payload["parent_dataset_id"] = parent_dataset_id
 
         # Build files payload
         files_payload = None
@@ -1185,6 +1190,7 @@ class DatasetsAPI(BaseAPI):
         type: str,
         format: str,
         short_description: Optional[str] = None,
+        parent_dataset_id: Optional[str] = None,
         file: Optional[Union[bytes, BinaryIO]] = None,
         file_path: Optional[Union[str, Path]] = None,
         server_url: Optional[str] = None,
@@ -1200,6 +1206,9 @@ class DatasetsAPI(BaseAPI):
 
         if short_description is not None:
             data_payload["short_description"] = short_description
+
+        if parent_dataset_id is not None and parent_dataset_id != "none":
+            data_payload["parent_dataset_id"] = parent_dataset_id
 
         files_payload = None
         opened_file = None

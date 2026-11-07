@@ -128,7 +128,7 @@ class TestDataAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        result = api.create_data(name="new-data", type="ner", format="jsonl", description="Test data")
+        result = api.create_data(name="new-data", type="ner", format="jsonl", short_description="Test data")
 
         # Verify request (multipart form-data)
         call_kwargs = api.configs.client.request.call_args.kwargs

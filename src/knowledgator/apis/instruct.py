@@ -57,7 +57,7 @@ class InstructAPI(BaseAPI):
         template: Optional[str] = None,
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -71,11 +71,14 @@ class InstructAPI(BaseAPI):
             template: JSON string representing a structure the model should fill.
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
-            model_id: Optional model ID for using a specific model.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
 
         Returns:
             InstructResults with the model's output.
@@ -123,7 +126,7 @@ class InstructAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
@@ -187,7 +190,7 @@ class InstructAPI(BaseAPI):
         template: Optional[str] = None,
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
-        model_id: Optional[str] = None,
+        adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
@@ -201,11 +204,14 @@ class InstructAPI(BaseAPI):
             template: JSON string representing a structure the model should fill.
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
-            model_id: Optional model ID for using a specific model.
+            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
+
+        Note:
+            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
 
         Returns:
             InstructResults with the model's output.
@@ -253,7 +259,7 @@ class InstructAPI(BaseAPI):
 
         headers = {
             **(http_headers or {}),
-            **get_model_id_header(model_id),
+            **get_model_id_header(adapter_id),
         }
 
         request = self._make_request(
