@@ -1,41 +1,46 @@
-from typing import Any, Dict, List, Mapping, Optional
+from __future__ import annotations
+
+from typing import Any, Dict, List, Union, Mapping, Optional
 from dataclasses import dataclass
 
 import httpx
 from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
+from ..models import (
+    AnalyzeOptions,
+    EntityResponse,
+    ExtractRequest,
+    ExtractResults,
+    AnalyzeTaskSpan,
+    RelationResponse,
+    ExtractBaseRequest,
+    ExtractBaseResults,
+    AnalyzeTaskRelation,
+    ExtractSummaryResults,
+    ExtractRelationsResults,
+    parse_task_output,
+)
 from ..exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
     from_http_response,
 )
-from ..models.inputs import (
-    ExtractBaseRequest,
-    ExtractSummaryRequest,
-    ExtractRelationsRequest,
-)
-from ..models.outputs import (
-    EntityResponse,
-    RelationResponse,
-    ExtractBaseResults,
-    ExtractSummaryResults,
-    ExtractRelationsResults,
-)
-from ..utils.dictionaries_op import get_model_id_header
+from ..utils.dictionaries_op import get_inference_tasks, get_model_id_header
 
 
 @dataclass
 class ExtractEndpointsConfig(EndpointsConfig):
     main: str = ""
+    batch: str = "batch"
+    capabilities: str = "capabilities"
     relations: str = "relations"
     summary: str = "summary"
 
 
 class ExtractAPI(BaseAPI):
-    """
-    ExtractAPI - zero-shot NER and information extraction API service."""
+    """ExtractAPI - zero-shot NER, information and relation extraction API service."""
 
     PATH = "/inference/extract/"
     METHOD = "POST"
@@ -145,54 +150,151 @@ class ExtractAPI(BaseAPI):
             status=raw.get("status", self.SUCCESS_STATUS),
         )
 
+    def _parse_extract_response(
+        self,
+        raw: Dict[str, Any],
+        target_input: Any,
+        tasks: Optional[Dict[str, Any]] = None,
+    ) -> ExtractResults:
+        """Parse extract response supporting both new task dict and legacy list format."""
+        if "outputs" not in raw and "results" not in raw:
+            raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
+
+        tasks_raw = get_inference_tasks(raw)
+
+        task_threshold = None
+        task_labels = []
+        if tasks and isinstance(tasks, dict):
+            for t in tasks.values():
+                if isinstance(t, dict):
+                    if t.get("labels"):
+                        task_labels = t["labels"] if isinstance(t["labels"], list) else list(t["labels"])
+                    if t.get("threshold") is not None:
+                        task_threshold = t["threshold"]
+                    break
+                elif hasattr(t, "labels") and t.labels:
+                    task_labels = t.labels.ids if hasattr(t.labels, "ids") else list(t.labels)
+                    if hasattr(t, "threshold") and t.threshold is not None:
+                        task_threshold = t.threshold
+                    break
+
+        if isinstance(tasks_raw, dict):
+            parsed_tasks = {k: parse_task_output(v, "span") for k, v in tasks_raw.items()}
+            return ExtractResults(
+                results=parsed_tasks,
+                outputs=parsed_tasks,
+                raw=raw,
+                input_text=str(target_input) if target_input is not None else "",
+                usage=raw.get("usage"),
+                threshold=task_threshold,
+                status="ok",
+            )
+        if isinstance(tasks_raw, list):
+            return self._parse_entities(
+                raw,
+                text_fallback=str(target_input),
+                labels_fallback=task_labels or ["entity"],
+                threshold_fallback=task_threshold,
+            )
+
+        raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
+
+    def _build_extract_request_body(
+        self,
+        *,
+        text: Optional[str] = None,
+        input: Optional[Any] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ExtractRequest, ExtractBaseRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
+        adapter_id: Optional[str] = None,
+    ) -> tuple[Dict[str, Any], Any]:
+        target_input = input if input is not None else text
+
+        if request is not None:
+            if isinstance(request, ExtractRequest):
+                return request.model_dump(exclude_none=True, by_alias=True), request.input.root
+            if isinstance(request, ExtractBaseRequest):
+                task = AnalyzeTaskSpan(type="span", labels=request.labels, threshold=request.threshold)
+                req = ExtractRequest(input=request.text, tasks={"entities": task})
+                return req.model_dump(exclude_none=True, by_alias=True), request.text
+            if isinstance(request, dict):
+                return request, request.get("input", target_input)
+
+        opt = options
+        if adapter_id and opt is None:
+            opt = AnalyzeOptions(adapter_id=adapter_id)
+        elif adapter_id and isinstance(opt, dict) and "adapter_id" not in opt:
+            opt["adapter_id"] = adapter_id
+
+        if tasks is None:
+            raise ValueError("Parameter 'tasks' (or 'request') is required for Extract inference.")
+
+        req = ExtractRequest(
+            input=target_input,
+            tasks=tasks,
+            options=opt,
+        )
+        return req.model_dump(exclude_none=True, by_alias=True), target_input
+
     def it(
         self,
-        text: str,
-        labels: List[str],
-        threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
+        text: Optional[str] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ExtractRequest, ExtractBaseRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
         adapter_id: Optional[str] = None,
+        input: Optional[Any] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
+        **extra_kwargs: Any,
+    ) -> ExtractResults:
         """
-        Extract named entities from input text.
+        Extract tasks from input text.
 
         Args:
-            text: Input text to extract entities from.
-            labels: Entity labels to extract.
-            threshold: Optional confidence score cut-off.
-            prompt: Optional prompt guidance.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            text: Input text to extract entities from (alias for input).
+            tasks: Dictionary of tasks (span, relation).
+            request: Pre-built ExtractRequest object.
+            options: Request options.
+            adapter_id: Optional LoRA adapter ID (attaches KnowledgatorAPI-Model-ID header).
+            input: Context input.
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional request timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+            **extra_kwargs: Additional keyword arguments.
         """
-        body = ExtractBaseRequest(
+        if "labels" in extra_kwargs:
+            raise TypeError(
+                "The 'labels' argument has been removed from extract.it. "
+                "Please use 'tasks={\"entities\": {\"type\": \"span\", \"labels\": [...]}}' instead."
+            )
+
+        json_body, target_input = self._build_extract_request_body(
             text=text,
-            labels=labels,
-            threshold=threshold,
-            prompt=prompt,
+            input=input,
+            tasks=tasks,
+            request=request,
+            options=options,
+            adapter_id=adapter_id,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.main}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True, by_alias=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -200,90 +302,80 @@ class ExtractAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
+            self._log.debug("ExtractAPI: %s %s", req.method, req.url)
 
         try:
-            response = self.send(request)
+            response = self.send(req)
         except httpx.TimeoutException as exc:
             raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, req.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
         try:
-            raw = response.json()
-            result_obj = self._parse_entities(
-                raw,
-                text_fallback=text,
-                labels_fallback=labels,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
+            raw: dict[str, Any] = response.json()
+        except ValueError as exc:
             raise ServerError(
-                "Malformed or unexpected response",
+                "Response is not valid JSON",
                 status_code=response.status_code,
                 payload={"raw": response.text},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted information successfully")
-        return result_obj
+        return self._parse_extract_response(
+            raw,
+            target_input=target_input,
+            tasks=tasks,
+        )
 
     async def it_async(
         self,
-        text: str,
-        labels: List[str],
-        threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
+        text: Optional[str] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ExtractRequest, ExtractBaseRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
         adapter_id: Optional[str] = None,
+        input: Optional[Any] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        """
-        Asynchronously extract named entities from input text.
+        **extra_kwargs: Any,
+    ) -> ExtractResults:
+        """Asynchronously extract tasks from input text."""
+        if "labels" in extra_kwargs:
+            raise TypeError(
+                "The 'labels' argument has been removed from extract.it_async. "
+                "Please use 'tasks={\"entities\": {\"type\": \"span\", \"labels\": [...]}}' instead."
+            )
 
-        Args:
-            text: Input text to extract entities from.
-            labels: Entity labels to extract.
-            threshold: Optional confidence score cut-off.
-            prompt: Optional prompt guidance.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
-        """
-        body = ExtractBaseRequest(
+        json_body, target_input = self._build_extract_request_body(
             text=text,
-            labels=labels,
-            threshold=threshold,
-            prompt=prompt,
+            input=input,
+            tasks=tasks,
+            request=request,
+            options=options,
+            adapter_id=adapter_id,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.main}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True, by_alias=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -291,237 +383,186 @@ class ExtractAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
+            self._log.debug("ExtractAPI: %s %s", req.method, req.url)
 
         try:
-            response = await self.send_async(request)
+            response = await self.send_async(req)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
+            raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
+            raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
+            self._log.debug("ExtractAPI: %s ← %s", response.status_code, req.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
         try:
-            raw = response.json()
-            result_obj = self._parse_entities(
-                raw,
-                text_fallback=text,
-                labels_fallback=labels,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
+            raw: dict[str, Any] = response.json()
+        except ValueError as exc:
             raise ServerError(
-                "Malformed or unexpected response",
+                "Response is not valid JSON",
                 status_code=response.status_code,
                 payload={"raw": response.text},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted information successfully")
-        return result_obj
+        return self._parse_extract_response(
+            raw,
+            target_input=target_input,
+            tasks=tasks,
+        )
 
     def relations(
         self,
         text: str,
-        entities: List[str],
         relations: List[str],
+        entities: List[str],
         threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
+        prompt: Optional[str] = None,
         adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        """
-        Extract relations between entities from input text.
-
-        Args:
-            text: Input text.
-            entities: Entities list.
-            relations: Relation types list.
-            threshold: Optional confidence score cut-off.
-            prompt: Optional prompt guidance.
-            rules: Optional relation rules.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
-        """
-        body = ExtractRelationsRequest(
-            text=text,
-            entities=entities,
-            relations=relations,
+    ) -> Union[ExtractResults, ExtractRelationsResults]:
+        """Extract relations between entities."""
+        task = AnalyzeTaskRelation(
+            type="relation",
+            labels=relations,
+            entity_labels=entities,
             threshold=threshold,
-            prompt=prompt,
-            rules=rules,
+            instruction=prompt,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
+        opt = AnalyzeOptions(adapter_id=adapter_id) if adapter_id else None
+        req_obj = ExtractRequest(input=text, tasks={"relations": task}, options=opt)
+        json_body = req_obj.model_dump(exclude_none=True, by_alias=True)
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.relations}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
         try:
-            response = self.send(request)
+            response = self.send(req)
         except httpx.TimeoutException as exc:
             raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
             raise ConnectionFailure("Transport error") from exc
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
-
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
-        try:
-            raw = response.json()
-            result_obj = self._parse_relations(
-                raw,
-                text_fallback=text,
-                entities_fallback=entities,
-                relations_fallback=relations,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        raw: dict[str, Any] = response.json()
+        tasks_raw = get_inference_tasks(raw)
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted relations successfully")
-        return result_obj
+        if isinstance(tasks_raw, dict):
+            parsed_tasks = {k: parse_task_output(v, "relation") for k, v in tasks_raw.items()}
+            return ExtractResults(
+                results=parsed_tasks,
+                raw=raw,
+                input_text=text,
+                threshold=threshold,
+                status="ok",
+            )
+        return self._parse_relations(
+            raw,
+            text_fallback=text,
+            entities_fallback=entities,
+            relations_fallback=relations,
+            threshold_fallback=threshold,
+        )
 
     async def relations_async(
         self,
         text: str,
-        entities: List[str],
         relations: List[str],
+        entities: List[str],
         threshold: Optional[float] = None,
-        prompt: Optional[str] = None,
         rules: Optional[List[Dict[str, Any]]] = None,
+        prompt: Optional[str] = None,
         adapter_id: Optional[str] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        """
-        Asynchronously extract relations between entities from input text.
-
-        Args:
-            text: Input text.
-            entities: Entities list.
-            relations: Relation types list.
-            threshold: Optional confidence score cut-off.
-            prompt: Optional prompt guidance.
-            rules: Optional relation rules.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
-        """
-        body = ExtractRelationsRequest(
-            text=text,
-            entities=entities,
-            relations=relations,
+    ) -> Union[ExtractResults, ExtractRelationsResults]:
+        """Asynchronously extract relations between entities."""
+        task = AnalyzeTaskRelation(
+            type="relation",
+            labels=relations,
+            entity_labels=entities,
             threshold=threshold,
-            prompt=prompt,
-            rules=rules,
+            instruction=prompt,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.relations}"
+        opt = AnalyzeOptions(adapter_id=adapter_id) if adapter_id else None
+        req_obj = ExtractRequest(input=text, tasks={"relations": task}, options=opt)
+        json_body = req_obj.model_dump(exclude_none=True, by_alias=True)
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.relations}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
         try:
-            response = await self.send_async(request)
+            response = await self.send_async(req)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
+            raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
-
-        if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
+            raise ConnectionFailure("Transport error") from exc
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
-        try:
-            raw = response.json()
-            result_obj = self._parse_relations(
-                raw,
-                text_fallback=text,
-                entities_fallback=entities,
-                relations_fallback=relations,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        raw: dict[str, Any] = response.json()
+        tasks_raw = get_inference_tasks(raw)
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted relations successfully")
-        return result_obj
+        if isinstance(tasks_raw, dict):
+            parsed_tasks = {k: parse_task_output(v, "relation") for k, v in tasks_raw.items()}
+            return ExtractResults(
+                results=parsed_tasks,
+                raw=raw,
+                input_text=text,
+                threshold=threshold,
+                status="ok",
+            )
+        return self._parse_relations(
+            raw,
+            text_fallback=text,
+            entities_fallback=entities,
+            relations_fallback=relations,
+            threshold_fallback=threshold,
+        )
 
     def summary(
         self,
@@ -533,81 +574,63 @@ class ExtractAPI(BaseAPI):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        """
-        Extract summary from input text.
-
-        Args:
-            text: Input text.
-            threshold: Optional score cut-off.
-            prompt: Optional prompt guidance.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
-        """
-        body = ExtractSummaryRequest(
-            text=text,
+    ) -> Union[ExtractResults, ExtractSummaryResults]:
+        """Extract extractive summary from input text."""
+        task = AnalyzeTaskSpan(
+            type="span",
+            labels=None,
             threshold=threshold,
-            prompt=prompt,
+            instruction=prompt,
         )
+        opt = AnalyzeOptions(adapter_id=adapter_id) if adapter_id else None
+        req_obj = ExtractRequest(input=text, tasks={"summary": task}, options=opt)
+        json_body = req_obj.model_dump(exclude_none=True, by_alias=True)
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.summary}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
         try:
-            response = self.send(request)
+            response = self.send(req)
         except httpx.TimeoutException as exc:
             raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
             raise ConnectionFailure("Transport error") from exc
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
-
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
-        try:
-            raw = response.json()
-            result_obj = self._parse_summary(
-                raw, text_fallback=text, threshold_fallback=threshold
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        raw: dict[str, Any] = response.json()
+        if "summary" in raw and isinstance(raw["summary"], str):
+            return self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted summary successfully")
-        return result_obj
+        if "outputs" in raw or "results" in raw:
+            tasks_raw = get_inference_tasks(raw)
+            if isinstance(tasks_raw, dict):
+                parsed_tasks = {k: parse_task_output(v, "span") for k, v in tasks_raw.items()}
+                return ExtractResults(
+                    results=parsed_tasks,
+                    raw=raw,
+                    input_text=text,
+                    threshold=threshold,
+                    status="ok",
+                )
+        return self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
 
     async def summary_async(
         self,
@@ -619,78 +642,60 @@ class ExtractAPI(BaseAPI):
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
-    ) -> ExtractBaseResults:
-        """
-        Asynchronously extract summary from input text.
-
-        Args:
-            text: Input text.
-            threshold: Optional score cut-off.
-            prompt: Optional prompt guidance.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
-        """
-        body = ExtractSummaryRequest(
-            text=text,
+    ) -> Union[ExtractResults, ExtractSummaryResults]:
+        """Asynchronously extract extractive summary from input text."""
+        task = AnalyzeTaskSpan(
+            type="span",
+            labels=None,
             threshold=threshold,
-            prompt=prompt,
+            instruction=prompt,
         )
+        opt = AnalyzeOptions(adapter_id=adapter_id) if adapter_id else None
+        req_obj = ExtractRequest(input=text, tasks={"summary": task}, options=opt)
+        json_body = req_obj.model_dump(exclude_none=True, by_alias=True)
 
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.summary}"
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.summary}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
         )
 
-        if self._log:
-            self._log.debug("ExtractAPI: %s %s", request.method, request.url)
-
         try:
-            response = await self.send_async(request)
+            response = await self.send_async(req)
         except httpx.TimeoutException as exc:
-            raise TransportTimeout(f"Request timed-out for {request.url}") from exc
+            raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
-            raise ConnectionFailure(f"Transport error for {request.url}: {exc} ({type(exc).__name__})") from exc
-
-        if self._log:
-            self._log.debug("ExtractAPI: %s ← %s", response.status_code, request.url)
+            raise ConnectionFailure("Transport error") from exc
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
 
-        try:
-            raw = response.json()
-            result_obj = self._parse_summary(
-                raw, text_fallback=text, threshold_fallback=threshold
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            # Bad/malformed JSON *or* schema mismatch → treat as server fault
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": response.text},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        raw: dict[str, Any] = response.json()
+        if "summary" in raw and isinstance(raw["summary"], str):
+            return self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)
 
-        if self._log:
-            self._log.debug("ExtractAPI: extracted summary successfully")
-        return result_obj
+        if "outputs" in raw or "results" in raw:
+            tasks_raw = get_inference_tasks(raw)
+            if isinstance(tasks_raw, dict):
+                parsed_tasks = {k: parse_task_output(v, "span") for k, v in tasks_raw.items()}
+                return ExtractResults(
+                    results=parsed_tasks,
+                    raw=raw,
+                    input_text=text,
+                    threshold=threshold,
+                    status="ok",
+                )
+        return self._parse_summary(raw, text_fallback=text, threshold_fallback=threshold)

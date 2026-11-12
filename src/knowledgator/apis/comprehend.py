@@ -1,31 +1,37 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Union, Mapping, Optional
 from dataclasses import dataclass
 
 import httpx
 from pydantic import ValidationError as PydanticValidationError
 
 from .base import BaseAPI, EndpointsConfig
+from ..models import (
+    AnalyzeOptions,
+    ComprehendRequest,
+    ComprehendResults,
+    ComprehendResponse,
+    parse_task_output,
+)
 from ..exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
     from_http_response,
 )
-from ..models.inputs import ComprehendRequest
-from ..models.outputs import ComprehendResults, ComprehendResponse
-from ..utils.dictionaries_op import get_model_id_header
+from ..utils.dictionaries_op import get_inference_tasks, get_model_id_header
 
 
 @dataclass
 class ComprehendEndpointsConfig(EndpointsConfig):
     main: str = ""
+    batch: str = "batch"
+    capabilities: str = "capabilities"
 
 
 class ComprehendAPI(BaseAPI):
-    """
-    ComprehendAPI - zero-shot classification API service."""
+    """ComprehendAPI - zero-shot classification and semantic decision API service."""
 
     PATH = "/inference/comprehend/"
     METHOD = "POST"
@@ -42,6 +48,7 @@ class ComprehendAPI(BaseAPI):
         labels_fallback: List[str],
         threshold_fallback: Optional[float] = None,
     ):
+        """Legacy helper for flat outputs list."""
         outputs = raw.get("outputs")
         if not isinstance(outputs, list):
             raise ServerError(
@@ -59,7 +66,7 @@ class ComprehendAPI(BaseAPI):
                 payload={"raw": raw},
             ) from exc
 
-        result_obj = ComprehendResults(
+        return ComprehendResults(
             results=parsed_results,
             input_text=raw.get("input_text", text_fallback),
             labels=raw.get("labels", labels_fallback),
@@ -69,56 +76,145 @@ class ComprehendAPI(BaseAPI):
             ),
             status=raw.get("status", self.SUCCESS_STATUS),
         )
-        return result_obj
+
+    def _build_request_body(
+        self,
+        *,
+        text: Optional[str] = None,
+        input: Optional[Any] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ComprehendRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
+        adapter_id: Optional[str] = None,
+    ) -> tuple[Dict[str, Any], Any]:
+        """Construct serialized JSON request payload and retain target input for result tracking."""
+        target_input = input if input is not None else text
+
+        if request is not None:
+            if isinstance(request, ComprehendRequest):
+                return request.model_dump(exclude_none=True, by_alias=True), request.input.root
+            if isinstance(request, dict):
+                return request, request.get("input", target_input)
+            raise TypeError(f"Invalid request type: {type(request)}. Expected ComprehendRequest or dict.")
+
+        opt = options
+        if adapter_id and opt is None:
+            opt = AnalyzeOptions(adapter_id=adapter_id)
+        elif adapter_id and isinstance(opt, dict) and "adapter_id" not in opt:
+            opt["adapter_id"] = adapter_id
+
+        if tasks is None:
+            raise ValueError("Parameter 'tasks' (or 'request') is required for Comprehend inference.")
+
+        req = ComprehendRequest(
+            input=target_input,
+            tasks=tasks,
+            options=opt,
+        )
+        return req.model_dump(exclude_none=True, by_alias=True), target_input
+
+    def _parse_response(
+        self,
+        raw: Dict[str, Any],
+        target_input: Any,
+        tasks: Optional[Dict[str, Any]] = None,
+    ) -> ComprehendResults:
+        """Parse raw response using get_inference_tasks helper."""
+        if "outputs" not in raw and "results" not in raw:
+            raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
+
+        tasks_raw = get_inference_tasks(raw)
+
+        task_threshold = None
+        if tasks and isinstance(tasks, dict):
+            for t in tasks.values():
+                if isinstance(t, dict) and t.get("threshold") is not None:
+                    task_threshold = t["threshold"]
+                    break
+                elif hasattr(t, "threshold") and t.threshold is not None:
+                    task_threshold = t.threshold
+                    break
+
+        if isinstance(tasks_raw, dict):
+            parsed_tasks = {k: parse_task_output(v, "classify") for k, v in tasks_raw.items()}
+            return ComprehendResults(
+                results=parsed_tasks,
+                outputs=parsed_tasks,
+                raw=raw,
+                input_text=str(target_input) if target_input is not None else "",
+                usage=raw.get("usage"),
+                threshold=task_threshold,
+                status="ok",
+            )
+        if isinstance(tasks_raw, list):
+            # Legacy list of outputs response
+            return self.parse_labels(
+                raw,
+                text_fallback=str(target_input),
+                labels_fallback=[],
+                threshold_fallback=task_threshold,
+            )
+
+        raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
 
     def it(
         self,
-        text: str,
-        labels: List[str],
-        threshold: Optional[float] = None,
-        examples: Optional[List[Dict[str, str]]] = None,
+        text: Optional[str] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ComprehendRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
         adapter_id: Optional[str] = None,
+        input: Optional[Any] = None,
         url_variables: Optional[Mapping[str, Any]] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
+        **extra_kwargs: Any,
     ) -> ComprehendResults:
         """
-        Classify text using candidate labels.
+        Evaluate tasks using Comprehend endpoint.
 
         Args:
-            text: Input text to classify.
-            labels: Candidate classification labels.
-            threshold: Optional score cut-off.
-            examples: Optional few-shot examples.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
+            text: Input text to evaluate (alias for input).
+            tasks: Dictionary of tasks (e.g. classify, boolean, score).
+            request: Pre-built ComprehendRequest object.
+            options: Request options (e.g. include_usage, adapter_id).
+            adapter_id: Optional LoRA adapter ID (attaches KnowledgatorAPI-Model-ID header).
+            input: Context input (string, dict, or list).
             url_variables: Optional URL path variables.
             server_url: Optional server URL override.
             timeout_ms: Optional request timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict(...) instead.
+            **extra_kwargs: Additional keyword arguments.
         """
-        body = ComprehendRequest(
+        if "labels" in extra_kwargs:
+            raise TypeError(
+                "The 'labels' argument has been removed from comprehend.it. "
+                "Please use 'tasks={\"topic\": {\"type\": \"classify\", \"labels\": [...]}}' instead."
+            )
+
+        json_body, target_input = self._build_request_body(
             text=text,
-            labels=labels,
-            threshold=threshold,
-            examples=examples,
+            input=input,
+            tasks=tasks,
+            request=request,
+            options=options,
+            adapter_id=adapter_id,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.main}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -126,17 +222,17 @@ class ComprehendAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("ComprehendAPI: %s %s", request.method, request.url)
+            self._log.debug("ComprehendAPI: %s %s", req.method, req.url)
 
         try:
-            response = self.send(request)
+            response = self.send(req)
         except httpx.TimeoutException as exc:
             raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("ComprehendAPI: %s ← %s", response.status_code, request.url)
+            self._log.debug("ComprehendAPI: %s ← %s", response.status_code, req.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -151,73 +247,59 @@ class ComprehendAPI(BaseAPI):
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        try:
-            result_obj = self.parse_labels(
-                raw,
-                text_fallback=text,
-                labels_fallback=labels,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": raw},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        result_obj = self._parse_response(
+            raw,
+            target_input=target_input,
+            tasks=tasks,
+        )
 
         if self._log:
-            self._log.debug("ComprehendAPI: classified text successfully")
+            self._log.debug("ComprehendAPI: evaluated tasks successfully")
         return result_obj
 
     async def it_async(
         self,
-        text: str,
-        labels: list[str],
-        threshold: float | None = None,
-        examples: list[dict[str, str]] | None = None,
-        adapter_id: str | None = None,
-        url_variables: Mapping[str, Any] | None = None,
-        server_url: str | None = None,
-        timeout_ms: int | None = None,
-        http_headers: Mapping[str, str] | None = None,
+        text: Optional[str] = None,
+        tasks: Optional[Dict[str, Any]] = None,
+        request: Optional[Union[ComprehendRequest, Dict[str, Any]]] = None,
+        options: Optional[Union[AnalyzeOptions, Dict[str, Any]]] = None,
+        adapter_id: Optional[str] = None,
+        input: Optional[Any] = None,
+        url_variables: Optional[Mapping[str, Any]] = None,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+        **extra_kwargs: Any,
     ) -> ComprehendResults:
-        """
-        Asynchronously classify text using candidate labels.
+        """Asynchronously evaluate tasks using Comprehend endpoint."""
+        if "labels" in extra_kwargs:
+            raise TypeError(
+                "The 'labels' argument has been removed from comprehend.it_async. "
+                "Please use 'tasks={\"topic\": {\"type\": \"classify\", \"labels\": [...]}}' instead."
+            )
 
-        Args:
-            text: Input text to classify.
-            labels: Candidate classification labels.
-            threshold: Optional score cut-off.
-            examples: Optional few-shot examples.
-            adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
-            url_variables: Optional URL path variables.
-            server_url: Optional server URL override.
-            timeout_ms: Optional request timeout in milliseconds.
-            http_headers: Optional additional HTTP headers.
-
-        Note:
-            For standalone full models (open-models), use client.model(open_model_id).predict_async(...) instead.
-        """
-        body = ComprehendRequest(
+        json_body, target_input = self._build_request_body(
             text=text,
-            labels=labels,
-            threshold=threshold,
-            examples=examples,
+            input=input,
+            tasks=tasks,
+            request=request,
+            options=options,
+            adapter_id=adapter_id,
         )
-        path = f"{self.PATH}/{self.ENDPOINTS_CONFIG.main}"
+
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.main}"
 
         headers = {
             **(http_headers or {}),
             **get_model_id_header(adapter_id),
         }
 
-        request = self._make_request(
+        req = self._make_request(
             method=self.METHOD,
             path=path,
             url_override=server_url,
             url_variables=url_variables,
-            json_body=body.model_dump(exclude_none=True),
+            json_body=json_body,
             headers=headers,
             accept=self.CONTENT_TYPE,
             timeout_ms=timeout_ms,
@@ -225,17 +307,17 @@ class ComprehendAPI(BaseAPI):
         )
 
         if self._log:
-            self._log.debug("ComprehendAPI: %s %s", request.method, request.url)
+            self._log.debug("ComprehendAPI: %s %s", req.method, req.url)
 
         try:
-            response = await self.send_async(request)
+            response = await self.send_async(req)
         except httpx.TimeoutException as exc:
             raise TransportTimeout("Request timed-out") from exc
         except httpx.RequestError as exc:
             raise ConnectionFailure("Transport error") from exc
 
         if self._log:
-            self._log.debug("ComprehendAPI: %s ← %s", response.status_code, request.url)
+            self._log.debug("ComprehendAPI: %s ← %s", response.status_code, req.url)
 
         if not 200 <= response.status_code < 300:
             raise from_http_response(response)
@@ -250,21 +332,12 @@ class ComprehendAPI(BaseAPI):
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
-        try:
-            result_obj = self.parse_labels(
-                raw,
-                text_fallback=text,
-                labels_fallback=labels,
-                threshold_fallback=threshold,
-            )
-        except (ValueError, PydanticValidationError) as exc:
-            raise ServerError(
-                "Malformed or unexpected response",
-                status_code=response.status_code,
-                payload={"raw": raw},
-                request_id=response.headers.get("x-request-id"),
-            ) from exc
+        result_obj = self._parse_response(
+            raw,
+            target_input=target_input,
+            tasks=tasks,
+        )
 
         if self._log:
-            self._log.debug("ComprehendAPI: classified text successfully")
+            self._log.debug("ComprehendAPI: evaluated tasks successfully")
         return result_obj
