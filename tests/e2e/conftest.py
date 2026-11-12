@@ -3,12 +3,10 @@ import os
 import pytest
 import pytest_asyncio
 
-try:
-    from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-    load_dotenv(override=True)
-except ImportError:
-    pass
+load_dotenv(override=True)
+
 
 API_KEY = os.getenv("KG_API_KEY")
 BASE_URL = os.getenv("KG_BASE_URL")
@@ -17,7 +15,9 @@ BASE_URL = os.getenv("KG_BASE_URL")
 def pytest_collection_modifyitems(config, items):
     """Skip E2E test items if no API key is set in environment."""
     if not API_KEY:
-        skip_marker = pytest.mark.skip(reason="KG_API_KEY environment variable is required to run E2E live API tests")
+        skip_marker = pytest.mark.skip(
+            reason="KG_API_KEY environment variable is required to run E2E live API tests"
+        )
         for item in items:
             item.add_marker(skip_marker)
 

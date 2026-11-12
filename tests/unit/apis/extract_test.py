@@ -16,6 +16,7 @@ from knowledgator.models.outputs import (
     EntityResponse,
     RelationResponse,
     ExtractBaseResults,
+    ExtractResults,
     ExtractSummaryResults,
     ExtractRelationsResults,
 )
@@ -145,46 +146,62 @@ class TestRelationResponse:
 class TestExtractAPISync:
     """Tests for synchronous ExtractAPI.it() method."""
 
+    def test_labels_raises_type_error(self, extract_api):
+        with pytest.raises(TypeError) as exc:
+            extract_api.it(text="Test", labels=["a", "b"])
+        assert "The 'labels' argument has been removed" in str(exc.value)
+
     def test_basic_entity_extraction(self, extract_api):
         """Test basic entity extraction without optional parameters."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"span": "Apple Inc.", "entity": "organization", "start": 0, "end": 10, "score": 0.95},
-                {"span": "California", "entity": "location", "start": 35, "end": 45, "score": 0.88},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"label": "organization", "start": 0, "end": 10, "score": 0.95, "text": "Apple Inc."},
+                        {"label": "location", "start": 35, "end": 45, "score": 0.88, "text": "California"},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         extract_api.configs.client.request.return_value = mock_response
 
         result = extract_api.it(
-            text="Apple Inc. announced new products in California.", labels=["person", "organization", "location"]
+            text="Apple Inc. announced new products in California.",
+            tasks={"entities": {"type": "span", "labels": ["person", "organization", "location"]}},
         )
 
-        assert isinstance(result, ExtractBaseResults)
-        assert len(result.results) == 2
-        assert result.results[0].span == "Apple Inc."
-        assert result.results[0].entity == "organization"
-        assert result.results[1].span == "California"
-        assert result.results[1].entity == "location"
+        assert isinstance(result, ExtractResults)
+        assert len(result.entities.value) == 2
+        assert result.entities.value[0].label == "organization"
+        assert result.entities.value[1].label == "location"
 
     def test_extraction_with_threshold(self, extract_api):
         """Test entity extraction with custom threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"span": "Google", "entity": "organization", "start": 0, "end": 6, "score": 0.92}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"label": "organization", "start": 0, "end": 6, "score": 0.92, "text": "Google"}],
+                    "threshold": 0.8,
+                }
+            }
         }
         mock_response.headers = {}
         extract_api.configs.client.request.return_value = mock_response
 
         result = extract_api.it(
-            text="Google develops AI technology", labels=["organization", "technology"], threshold=0.8
+            text="Google develops AI technology",
+            tasks={"entities": {"type": "span", "labels": ["organization", "technology"], "threshold": 0.8}},
         )
 
-        assert len(result.results) == 1
-        assert result.results[0].entity == "organization"
+        assert len(result.entities.value) == 1
+        assert result.entities.value[0].label == "organization"
         assert result.threshold == 0.8
 
     def test_extraction_with_prompt(self, extract_api):
@@ -192,44 +209,65 @@ class TestExtractAPISync:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"span": "John Smith", "entity": "person", "start": 0, "end": 10, "score": 0.94}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"label": "person", "start": 0, "end": 10, "score": 0.94, "text": "John Smith"}],
+                }
+            }
         }
         mock_response.headers = {}
         extract_api.configs.client.request.return_value = mock_response
 
         result = extract_api.it(
             text="John Smith works at Microsoft",
-            labels=["person", "organization"],
-            prompt="Extract all people and organizations",
+            tasks={
+                "entities": {
+                    "type": "span",
+                    "labels": ["person", "organization"],
+                    "instruction": "Extract all people and organizations",
+                }
+            },
         )
 
-        assert result.results[0].span == "John Smith"
+        assert result.entities.value[0].label == "person"
 
     def test_no_entities_above_threshold(self, extract_api):
         """Test when no entities meet the threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [],
+                    "threshold": 0.9,
+                }
+            }
+        }
         mock_response.headers = {}
         extract_api.configs.client.request.return_value = mock_response
 
-        result = extract_api.it(text="Ambiguous text", labels=["entity1", "entity2"], threshold=0.9)
+        result = extract_api.it(
+            text="Ambiguous text",
+            tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"], "threshold": 0.9}},
+        )
 
-        assert len(result.results) == 0
+        assert len(result.entities.value) == 0
 
     def test_timeout_exception(self, extract_api):
         """Test that timeout raises TransportTimeout."""
         extract_api.configs.client.request.side_effect = httpx.TimeoutException("timeout")
 
         with pytest.raises(TransportTimeout):
-            extract_api.it(text="Test text", labels=["entity1", "entity2"])
+            extract_api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
     def test_connection_error(self, extract_api):
         """Test that connection errors raise ConnectionFailure."""
         extract_api.configs.client.request.side_effect = httpx.RequestError("connection failed")
 
         with pytest.raises(ConnectionFailure):
-            extract_api.it(text="Test text", labels=["entity1", "entity2"])
+            extract_api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
     def test_server_error_response(self, extract_api):
         """Test handling of server error responses."""
@@ -241,7 +279,7 @@ class TestExtractAPISync:
         extract_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            extract_api.it(text="Test text", labels=["entity1", "entity2"])
+            extract_api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
     def test_missing_outputs_in_response(self, extract_api):
         """Test that missing 'outputs' in response raises ServerError."""
@@ -252,7 +290,7 @@ class TestExtractAPISync:
         extract_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            extract_api.it(text="Test text", labels=["entity1", "entity2"])
+            extract_api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_malformed_entity_in_outputs(self, extract_api):
@@ -261,15 +299,16 @@ class TestExtractAPISync:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "outputs": [
-                {"span": "test"}  # Missing required fields
+                {"span": "test"}  # Missing required fields and is a list instead of task dict
             ]
         }
         mock_response.headers = {"x-request-id": "req-999"}
         extract_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            extract_api.it(text="Test text", labels=["entity1", "entity2"])
-        assert "Unexpected entity record format" in str(exc_info.value)
+            extract_api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
+        assert "expected task-keyed dictionary" in str(exc_info.value)
+
 
 
 class TestExtractAPIRelations:
@@ -381,16 +420,21 @@ class TestExtractAPIAsync:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"span": "Google", "entity": "organization", "start": 0, "end": 6, "score": 0.94}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"label": "organization", "start": 0, "end": 6, "score": 0.94, "text": "Google"}],
+                }
+            }
         }
         mock_response.headers = {}
 
         # Mock the send method directly with AsyncMock
         with patch.object(extract_api, "send_async", new=AsyncMock(return_value=mock_response)):
-            result = await extract_api.it_async(text="Google develops AI", labels=["organization", "technology"])
+            result = await extract_api.it_async(text="Google develops AI", tasks={"entities": {"type": "span", "labels": ["organization", "technology"]}})
 
-            assert result.results[0].span == "Google"
-            assert result.results[0].entity == "organization"
+            assert result.entities.value[0].text == "Google"
+            assert result.entities.value[0].label == "organization"
 
     @pytest.mark.asyncio
     async def test_async_timeout(self, extract_api):
@@ -400,7 +444,7 @@ class TestExtractAPIAsync:
             patch.object(extract_api, "send_async", new=AsyncMock(side_effect=httpx.TimeoutException("timeout"))),
             pytest.raises(TransportTimeout),
         ):
-            await extract_api.it_async(text="Test", labels=["entity1", "entity2"])
+            await extract_api.it_async(text="Test", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
     @pytest.mark.asyncio
     async def test_async_relations(self, extract_api):

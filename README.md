@@ -88,7 +88,10 @@ from knowledgator import Knowledgator
 
 client = Knowledgator(api_key="YOUR API KEY")
 
-response = client.comprehend.it("Earth is beautiful", labels=["positive", "negative", "neutral"])
+response = client.comprehend.it(
+    text="Earth is beautiful",
+    tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}}
+)
 
 print(response)
 ```
@@ -106,12 +109,18 @@ kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
 
 res = kg.comprehend.it(
     text="Earth is beautiful",
-    labels=["geography", "sport"],
-    threshold=0.5,
-    examples=[{"text": "Example text", "label": "geography"}]
+    tasks={
+        "topic": {
+            "type": "classify",
+            "labels": ["geography", "sport"],
+            "threshold": 0.5,
+            "examples": [{"text": "Example text", "label": "geography"}],
+        }
+    },
 )
 
 print(res)  # Outputs ComprehendResults with classifications
+print(res.topic)  # Directly access parsed task output
 ```
 
 For asynchronous usage:
@@ -127,12 +136,18 @@ async def main():
 
     res = await kg.comprehend.it_async(
         text="Kyiv is beautiful",
-        labels=["geography", "sport"],
-        threshold=0.5,
-        examples=[{"text": "Example text", "label": "geography"}]
+        tasks={
+            "topic": {
+                "type": "classify",
+                "labels": ["geography", "sport"],
+                "threshold": 0.5,
+                "examples": [{"text": "Example text", "label": "geography"}],
+            }
+        },
     )
 
     print(res)
+    print(res.topic)
 
 asyncio.run(main())
 ```
@@ -147,6 +162,7 @@ asyncio.run(main())
 - [Raw Data Management](#raw-data-management)
 - [Fine-tuning](#fine-tuning)
 - [Open Models](#open-models)
+- [Model Types: LoRA Adapters vs. Open Models](#model-types-lora-adapters-vs-open-models)
 - [RapidAPI Variant](#rapidapi-variant)
 - [Available Resources and Operations](#available-resources-and-operations)
 - [Retries](#retries)
@@ -170,12 +186,18 @@ kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
 
 res = kg.extract.it(
     text="Extract entities from this text.",
-    labels=["person", "location"],
-    threshold=0.5,
-    prompt="Custom prompt for extraction"
+    tasks={
+        "entities": {
+            "type": "span",
+            "labels": ["person", "location"],
+            "threshold": 0.5,
+            "instruction": "Custom prompt for extraction",
+        }
+    },
 )
 
-print(res)  # Outputs ExtractBaseResults with entities
+print(res)  # Outputs ExtractResults with entities
+print(res.entities)  # Directly access parsed entities task output
 ```
 
 Asynchronous version:
@@ -191,12 +213,18 @@ async def main():
 
     res = await kg.extract.it_async(
         text="Extract entities from this text.",
-        labels=["person", "location"],
-        threshold=0.5,
-        prompt="Custom prompt for extraction"
+        tasks={
+            "entities": {
+                "type": "span",
+                "labels": ["person", "location"],
+                "threshold": 0.5,
+                "instruction": "Custom prompt for extraction",
+            }
+        },
     )
 
     print(res)
+    print(res.entities)
 
 asyncio.run(main())
 ```
@@ -325,7 +353,7 @@ res = kg.datasets.create(
     name="My NER Dataset",
     type="ner",
     format="jsonl",
-    description="Dataset for named entity recognition"
+    short_description="Dataset for named entity recognition"
 )
 
 print(res)  # Outputs DatasetCreationResponse
@@ -437,19 +465,63 @@ print(res)  # Outputs ListMetricsResponse
 Interact with custom or finetuned models using dynamic model identifiers.
 
 ```python
-# Initialize a model client
-model = kg.model("your-model-id")
+# Initialize a model client for a standalone full model
+model = kg.model("m-d9be7ede307943439a30c6f814026566")
 
-# Generic prediction
-response = model.predict({"input": "text to process"})
+# Default prediction invokes POST /inference/{model_id}/
+response = model.predict({
+    "text": "Smartphone with 120Hz OLED screen and 5000mAh battery",
+    "labels": ["Electronics", "Apparel", "Home Goods"]
+})
 
-# Shorthand for method-based inference
-generator = kg.model("your-model-id", method="generate")
-response = generator.predict({"prompt": "Tell me a story."})
+# Shorthand for method-based inference (invokes POST /inference/{model_id}/{method}/)
+extractor = kg.model("m-d9be7ede307943439a30c6f814026566", method="relations")
+response = extractor.predict({"text": "Apple released iPhone in Cupertino."})
 
-# Explicitly call a specific method
-result = generator.call("summarize", {"text": "..."})
+# Explicitly call a specific sub-method
+result = model.call("relations", {"text": "Apple released iPhone in Cupertino."})
 ```
+
+## Model Types: LoRA Adapters vs. Open Models
+
+Knowledgator supports two distinct types of fine-tuned and custom models:
+
+| Model Type | Platform Representation | Where to Run Inference | How to Call |
+| :--- | :--- | :--- | :--- |
+| **LoRA Adapters** | `type="adapter"` (attached to a base service like `comprehend-it` or `extract-it`) | Base Service Endpoint (`/inference/comprehend/`, `/inference/extract/`) with `KnowledgatorAPI-Model-ID` header | `kg.comprehend.it(..., adapter_id="<adapter-id>")` or `kg.extract.it(..., adapter_id="<adapter-id>")` |
+| **Open Models** | `type="model"` (standalone full model, e.g. fine-tuned `gliclass-x-base`, `gliner-base`) | Dedicated Endpoint (`/inference/{model_id}/` or `/inference/{model_id}/{method}/`) | `kg.model("<model-id>").predict(...)` or `kg.model("<model-id>", method="...").predict(...)` |
+
+### 1. Using a LoRA Adapter
+
+When fine-tuning creates a lightweight adapter (`type="adapter"`), supply `adapter_id`:
+
+```python
+# Zero-shot classification with your fine-tuned LoRA adapter
+res = kg.comprehend.it(
+    text="Smartphone with 120Hz OLED screen and 5000mAh battery",
+    tasks={"topic": {"type": "classify", "labels": ["Electronics", "Apparel", "Home Goods"]}},
+    adapter_id="your-adapter-id"  # Automatically passes KnowledgatorAPI-Model-ID header
+)
+```
+
+### 2. Using a Full Open Model
+
+When fine-tuning produces a standalone model or when using standalone full models (`type="model"`), route through `kg.model(...)`:
+
+```python
+# Predict using a standalone full open model (e.g. fine-tuned gliclass or gliner)
+model = kg.model("m-d9be7ede307943439a30c6f814026566")
+
+# The input payload matches the expected schema of the model (e.g. text + labels)
+res = model.predict({
+    "text": "Smartphone with 120Hz OLED screen and 5000mAh battery",
+    "labels": ["Electronics", "Apparel", "Home Goods"]
+})
+print(res)
+```
+
+> ⚠️ **Important**: Do not pass a standalone Open Model ID as `adapter_id` to `comprehend.it` or `extract.it`. The base service will reject it with HTTP 503 (`server.resource_unavailable`). Always use `kg.model(model_id).predict(...)` for Open Models.
+
 
 ## RapidAPI Variant
 
@@ -470,7 +542,6 @@ kg_rapid = KnowledgatorRapidAPI(api_key=os.getenv("RAPID_KG_API_KEY", ""))
 
 - `it`: Zero-shot classification.
 - `it_async`: Asynchronous classification.
-- `parse_labels`: Parse raw response into ComprehendResults.
 
 ### ExtractAPI
 
@@ -480,9 +551,6 @@ kg_rapid = KnowledgatorRapidAPI(api_key=os.getenv("RAPID_KG_API_KEY", ""))
 - `relations_async`: Asynchronous relation extraction.
 - `summary`: Text summarization.
 - `summary_async`: Asynchronous summarization.
-- `_parse_entities`: Parse entities into ExtractBaseResults.
-- `_parse_relations`: Parse relations into ExtractRelationsResults.
-- `_parse_summary`: Parse summary into ExtractSummaryResults.
 
 ### InstructAPI
 
@@ -570,7 +638,10 @@ import os
 kg = Knowledgator(api_key=os.getenv("KG_API_KEY", ""))
 
 try:
-    res = kg.comprehend.it("text", ["labels"])
+    res = kg.comprehend.it(
+        text="text",
+        tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}}
+    )
 except ServerError as e:
     print(e.status_code, e.payload)
 except Exception as e:

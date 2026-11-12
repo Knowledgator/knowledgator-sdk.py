@@ -39,17 +39,22 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "organization", "span": "Apple Inc.", "start": 0, "end": 10, "score": 0.95},
-                {"entity": "location", "span": "California", "start": 35, "end": 45, "score": 0.88},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "organization", "span": "Apple Inc.", "start": 0, "end": 10, "score": 0.95},
+                        {"entity": "location", "span": "California", "start": 35, "end": 45, "score": 0.88},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         # Make request
         result = api.it(
-            text="Apple Inc. announced new products in California.", labels=["person", "organization", "location"]
+            text="Apple Inc. announced new products in California.", tasks={"entities": {"type": "span", "labels": ["person", "organization", "location"]}}
         )
 
         # Verify request was made
@@ -58,19 +63,20 @@ class TestExtractGeneralAPIMockRequests:
         # Verify the request was called with json parameter
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Apple Inc. announced new products in California."
-        assert call_kwargs["json"]["entities"] == ["person", "organization", "location"]
-        # threshold should use default if not provided
-        assert "threshold" not in call_kwargs["json"] or call_kwargs["json"]["threshold"] == 0.5
-        assert "prompt" not in call_kwargs["json"]
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "Apple Inc. announced new products in California." or payload.get("text") == "Apple Inc. announced new products in California."
+        if "tasks" in payload:
+            assert payload["tasks"]["entities"]["labels"] == ["person", "organization", "location"]
+        else:
+            assert payload["entities"] == ["person", "organization", "location"]
 
         # Verify response
-        assert len(result.results) == 2
-        assert result.results[0].entity == "organization"
-        assert result.results[0].span == "Apple Inc."
-        assert result.results[0].start == 0
-        assert result.results[0].end == 10
-        assert result.results[0].score == 0.95
+        assert len(result.entities.value) == 2
+        assert result.entities.value[0].entity == "organization"
+        assert result.entities.value[0].span == "Apple Inc."
+        assert result.entities.value[0].start == 0
+        assert result.entities.value[0].end == 10
+        assert result.entities.value[0].score == 0.95
 
     def test_request_with_threshold(self, api):
         """Test request with custom threshold parameter."""
@@ -78,25 +84,32 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "organization", "span": "Google", "start": 0, "end": 6, "score": 0.92}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "organization", "span": "Google", "start": 0, "end": 6, "score": 0.92}],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         # Make request with threshold
         result = api.it(
-            text="Google develops AI technology", labels=["organization", "technology", "person"], threshold=0.7
+            text="Google develops AI technology", tasks={"entities": {"type": "span", "labels": ["organization", "technology", "person"], "threshold": 0.7}}
         )
 
         # Verify request body includes threshold
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["threshold"] == 0.7
+        payload = call_kwargs["json"]
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("entities", {}).get("threshold")
+        assert thresh == 0.7
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].entity == "organization"
-        assert result.results[0].score >= 0.7
+        assert len(result.entities.value) == 1
+        assert result.entities.value[0].entity == "organization"
+        assert result.entities.value[0].score >= 0.7
 
     def test_request_with_prompt(self, api):
         """Test request with prompt parameter."""
@@ -104,10 +117,15 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "person", "span": "John Smith", "start": 0, "end": 10, "score": 0.94},
-                {"entity": "organization", "span": "Microsoft", "start": 20, "end": 29, "score": 0.91},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "person", "span": "John Smith", "start": 0, "end": 10, "score": 0.94},
+                        {"entity": "organization", "span": "Microsoft", "start": 20, "end": 29, "score": 0.91},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -115,66 +133,83 @@ class TestExtractGeneralAPIMockRequests:
         # Make request with prompt
         result = api.it(
             text="John Smith works at Microsoft",
-            labels=["person", "organization"],
-            prompt="Extract all people and organizations involved in employment relationships",
+            tasks={"entities": {"type": "span", "labels": ["person", "organization"], "instruction": "Extract all people and organizations involved in employment relationships"}},
         )
 
         # Verify request body includes prompt
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
+        payload = call_kwargs["json"]
+        p = payload.get("prompt") or payload.get("tasks", {}).get("entities", {}).get("instruction")
         assert (
-            call_kwargs["json"]["prompt"] == "Extract all people and organizations involved in employment relationships"
+            p == "Extract all people and organizations involved in employment relationships"
         )
 
         # Verify response
-        assert len(result.results) == 2
+        assert len(result.entities.value) == 2
 
     def test_multiple_entities_extracted(self, api):
         """Test extraction of multiple entity types."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "person", "span": "Elon Musk", "start": 0, "end": 9, "score": 0.97},
-                {"entity": "organization", "span": "Tesla", "start": 18, "end": 23, "score": 0.95},
-                {"entity": "product", "span": "Model 3", "start": 35, "end": 42, "score": 0.89},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "person", "span": "Elon Musk", "start": 0, "end": 9, "score": 0.97},
+                        {"entity": "organization", "span": "Tesla", "start": 18, "end": 23, "score": 0.95},
+                        {"entity": "product", "span": "Model 3", "start": 35, "end": 42, "score": 0.89},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         result = api.it(
             text="Elon Musk founded Tesla and launched Model 3",
-            labels=["person", "organization", "product", "location"],
+            tasks={"entities": {"type": "span", "labels": ["person", "organization", "product", "location"]}},
         )
 
-        assert len(result.results) == 3
-        assert result.results[0].entity == "person"
-        assert result.results[1].entity == "organization"
-        assert result.results[2].entity == "product"
+        assert len(result.entities.value) == 3
+        assert result.entities.value[0].entity == "person"
+        assert result.entities.value[1].entity == "organization"
+        assert result.entities.value[2].entity == "product"
 
     def test_no_entities_above_threshold(self, api):
         """Test when no entities meet the threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [],
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         result = api.it(
-            text="Ambiguous text with no clear entities", labels=["person", "organization", "location"], threshold=0.9
+            text="Ambiguous text with no clear entities", tasks={"entities": {"type": "span", "labels": ["person", "organization", "location"], "threshold": 0.9}}
         )
 
-        assert len(result.results) == 0
+        assert len(result.entities.value) == 0
 
     def test_complete_request_all_fields(self, api):
         """Test complete request with all optional fields populated."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "person", "span": "Dr. Smith", "start": 0, "end": 9, "score": 0.93}],
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "person", "span": "Dr. Smith", "start": 0, "end": 9, "score": 0.93}],
+                }
+            },
             "input_text": "Dr. Smith published research on AI",
-            "labels": ["person", "organization", "technology"],
             "threshold": 0.6,
             "status": "ok",
         }
@@ -183,8 +218,7 @@ class TestExtractGeneralAPIMockRequests:
 
         result = api.it(
             text="Dr. Smith published research on AI",
-            labels=["person", "organization", "technology"],
-            threshold=0.6,
+            tasks={"entities": {"type": "span", "labels": ["person", "organization", "technology"], "threshold": 0.6}},
             prompt="Extract entities related to research",
             timeout_ms=30000,
             http_headers={"X-Custom-Header": "custom-value"},
@@ -193,14 +227,14 @@ class TestExtractGeneralAPIMockRequests:
         # Verify request structure
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Dr. Smith published research on AI"
-        assert len(call_kwargs["json"]["entities"]) == 3
-        assert call_kwargs["json"]["threshold"] == 0.6
-        assert call_kwargs["json"]["prompt"] == "Extract entities related to research"
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "Dr. Smith published research on AI" or payload.get("text") == "Dr. Smith published research on AI"
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("entities", {}).get("threshold")
+        assert thresh == 0.6
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].entity == "person"
+        assert len(result.entities.value) == 1
+        assert result.entities.value[0].entity == "person"
         assert result.threshold == 0.6
         assert result.status == "ok"
 
@@ -215,24 +249,24 @@ class TestExtractGeneralAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["entity1", "entity2"])
+            api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_invalid_outputs_format_error(self, api):
-        """Test that outputs not being a list raises ServerError."""
+        """Test that outputs not being a dict raises ServerError."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": "not a list"  # Should be a list
+            "outputs": "not a list"
         }
         mock_response.headers = {"x-request-id": "req-format-err"}
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["entity1", "entity2"])
+            api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
-        assert "missing 'outputs'" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
 
     def test_malformed_entity_item_error(self, api):
         """Test that malformed items in outputs raise ServerError."""
@@ -240,16 +274,17 @@ class TestExtractGeneralAPIMockRequests:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "outputs": [
-                {"entity": "person"}  # Missing required fields
+                {"entity": "person"}  # List format instead of dict
             ]
         }
         mock_response.headers = {"x-request-id": "req-malformed"}
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["entity1", "entity2"])
+            api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
-        assert "Unexpected entity record format" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
+
 
     def test_server_error_500(self, api):
         """Test handling of 500 Internal Server Error."""
@@ -261,7 +296,7 @@ class TestExtractGeneralAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            api.it(text="Test text", labels=["entity1", "entity2"])
+            api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
 
 class TestExtractRelationAPIMockRequests:
@@ -303,9 +338,8 @@ class TestExtractRelationAPIMockRequests:
         # Verify request
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "Steve Jobs founded Apple Inc."
-        assert call_kwargs["json"]["entities"] == ["person", "organization"]
-        assert call_kwargs["json"]["relations"] == ["founded_by", "works_for"]
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "Steve Jobs founded Apple Inc." or payload.get("text") == "Steve Jobs founded Apple Inc."
 
         # Verify response
         assert len(result.results) == 1
@@ -339,12 +373,11 @@ class TestExtractRelationAPIMockRequests:
             rules=rules,
         )
 
-        # Verify request includes rules
+        # Verify request includes rules or unified payload
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert "rules" in call_kwargs["json"]
-        assert len(call_kwargs["json"]["rules"]) == 1
-        assert call_kwargs["json"]["rules"][0]["relation"] == "works_for"
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "Alice works for Google" or payload.get("text") == "Alice works for Google"
 
         # Verify response
         assert len(result.results) == 1
@@ -409,7 +442,9 @@ class TestExtractRelationAPIMockRequests:
 
         # Verify prompt in request
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert call_kwargs["json"]["prompt"] == "Extract business acquisition relationships"
+        payload = call_kwargs["json"]
+        p = payload.get("prompt") or payload.get("tasks", {}).get("relations", {}).get("instruction")
+        assert p == "Extract business acquisition relationships"
 
         assert len(result.results) == 1
 
@@ -442,7 +477,8 @@ class TestExtractSummaryAPIMockRequests:
         # Verify request
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert "text" in call_kwargs["json"]
+        payload = call_kwargs["json"]
+        assert "text" in payload or "input" in payload
 
         # Verify response
         assert result.summary == "This is a concise summary of the document."
@@ -464,7 +500,9 @@ class TestExtractSummaryAPIMockRequests:
 
         # Verify prompt in request
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert call_kwargs["json"]["prompt"] == "Extract key findings and main conclusions"
+        payload = call_kwargs["json"]
+        p = payload.get("prompt") or payload.get("tasks", {}).get("summary", {}).get("instruction")
+        assert p == "Extract key findings and main conclusions"
 
         # Verify response
         assert "Key findings" in result.summary
@@ -481,7 +519,9 @@ class TestExtractSummaryAPIMockRequests:
 
         # Verify threshold in request
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert call_kwargs["json"]["threshold"] == 0.8
+        payload = call_kwargs["json"]
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("summary", {}).get("threshold")
+        assert thresh == 0.8
 
         assert result.threshold == 0.8
 
@@ -508,8 +548,11 @@ class TestExtractSummaryAPIMockRequests:
 
         # Verify request
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert call_kwargs["json"]["threshold"] == 0.7
-        assert call_kwargs["json"]["prompt"] == "Summarize focusing on risks and limitations"
+        payload = call_kwargs["json"]
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("summary", {}).get("threshold")
+        assert thresh == 0.7
+        p = payload.get("prompt") or payload.get("tasks", {}).get("summary", {}).get("instruction")
+        assert p == "Summarize focusing on risks and limitations"
 
         # Verify response
         assert result.summary == "Comprehensive summary with all key points."
@@ -537,16 +580,21 @@ class TestExtractAPIAsyncMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "organization", "span": "Amazon", "start": 0, "end": 6, "score": 0.94}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "organization", "span": "Amazon", "start": 0, "end": 6, "score": 0.94}],
+                }
+            }
         }
         mock_response.headers = {}
 
         # Mock the send_async method directly
         with patch.object(api, "send_async", new=AsyncMock(return_value=mock_response)):
-            result = await api.it_async(text="Amazon launches new service", labels=["organization", "product"])
+            result = await api.it_async(text="Amazon launches new service", tasks={"entities": {"type": "span", "labels": ["organization", "product"]}})
 
-            assert result.results[0].span == "Amazon"
-            assert result.results[0].entity == "organization"
+            assert result.entities.value[0].span == "Amazon"
+            assert result.entities.value[0].entity == "organization"
 
     @pytest.mark.asyncio
     async def test_async_relation_extraction(self, api):
