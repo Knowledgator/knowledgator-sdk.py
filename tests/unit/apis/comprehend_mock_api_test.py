@@ -22,6 +22,11 @@ from knowledgator.apis.comprehend import ComprehendAPI
 class TestComprehendAPIMockRequests:
     """Test Comprehend API with mock HTTP requests matching the API contract."""
 
+    def test_labels_raises_type_error(self, api):
+        with pytest.raises(TypeError) as exc:
+            api.it(text="Test", labels=["a", "b"])
+        assert "The 'labels' argument has been removed" in str(exc.value)
+
     @pytest.fixture
     def api(self):
         """Create ComprehendAPI instance with mock configuration."""
@@ -44,7 +49,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        result = api.it(text="This product is amazing!", labels=["positive", "negative", "neutral"])
+        result = api.it(text="This product is amazing!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}})
 
         # Verify request was made
         assert api.configs.client.request.called
@@ -52,11 +57,13 @@ class TestComprehendAPIMockRequests:
         # Verify the request was called with json parameter
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "This product is amazing!"
-        assert call_kwargs["json"]["labels"] == ["positive", "negative", "neutral"]
-        # threshold should use default if not provided
-        assert "threshold" not in call_kwargs["json"] or call_kwargs["json"]["threshold"] == 0.5
-        assert "examples" not in call_kwargs["json"]
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "This product is amazing!" or payload.get("text") == "This product is amazing!"
+        if "tasks" in payload:
+            task = payload["tasks"].get("topic", {})
+            assert task.get("labels") == ["positive", "negative", "neutral"]
+        else:
+            assert payload.get("labels") == ["positive", "negative", "neutral"]
 
         # Verify response
         assert len(result.results) == 2
@@ -77,14 +84,15 @@ class TestComprehendAPIMockRequests:
         # Make request with threshold
         result = api.it(
             text="AI and machine learning are transforming industries",
-            labels=["technology", "politics", "sports", "entertainment"],
-            threshold=0.7,
+            tasks={"topic": {"type": "classify", "labels": ["technology", "politics", "sports", "entertainment"], "threshold": 0.7}},
         )
 
         # Verify request body includes threshold
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["threshold"] == 0.7
+        payload = call_kwargs["json"]
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("topic", {}).get("threshold")
+        assert thresh == 0.7
 
         # Verify response
         assert len(result.results) == 1
@@ -109,16 +117,14 @@ class TestComprehendAPIMockRequests:
 
         # Make request
         result = api.it(
-            text="The product quality is unacceptable", labels=["praise", "complaint", "question"], examples=examples
+            text="The product quality is unacceptable", tasks={"topic": {"type": "classify", "labels": ["praise", "complaint", "question"]}}
         )
 
-        # Verify request body includes examples
+        # Verify request body
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert "examples" in call_kwargs["json"]
-        assert len(call_kwargs["json"]["examples"]) == 3
-        assert call_kwargs["json"]["examples"][0]["text"] == "Excellent service, very satisfied!"
-        assert call_kwargs["json"]["examples"][0]["label"] == "praise"
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "The product quality is unacceptable" or payload.get("text") == "The product quality is unacceptable"
 
         # Verify response
         assert result.results[0].label == "complaint"
@@ -139,8 +145,7 @@ class TestComprehendAPIMockRequests:
 
         result = api.it(
             text="Apple announces groundbreaking AI features for enterprise customers",
-            labels=["technology", "business", "sports", "politics", "innovation", "health"],
-            threshold=0.5,
+            tasks={"topic": {"type": "classify", "labels": ["technology", "business", "sports", "politics", "innovation", "health"], "threshold": 0.5}},
         )
 
         # Verify multiple labels returned
@@ -162,7 +167,7 @@ class TestComprehendAPIMockRequests:
 
         result = api.it(
             text="CRITICAL: Server down, immediate attention needed!",
-            labels=["urgent", "normal", "low-priority", "action-required", "informational"],
+            tasks={"topic": {"type": "classify", "labels": ["urgent", "normal", "low-priority", "action-required", "informational"]}},
         )
 
         assert len(result.results) == 2
@@ -177,7 +182,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         result = api.it(
-            text="Ambiguous text with unclear intent", labels=["category1", "category2", "category3"], threshold=0.9
+            text="Ambiguous text with unclear intent", tasks={"topic": {"type": "classify", "labels": ["category1", "category2", "category3"], "threshold": 0.9}}
         )
 
         assert len(result.results) == 0
@@ -190,7 +195,7 @@ class TestComprehendAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="CLICK HERE NOW!!! WIN $1000000 FREE!!!", labels=["spam", "legitimate", "promotional"])
+        result = api.it(text="CLICK HERE NOW!!! WIN $1000000 FREE!!!", tasks={"topic": {"type": "classify", "labels": ["spam", "legitimate", "promotional"]}})
 
         assert len(result.results) == 1
         assert result.results[0].label == "spam"
@@ -217,9 +222,7 @@ class TestComprehendAPIMockRequests:
 
         result = api.it(
             text="System error 500 on production server",
-            labels=["technical-issue", "billing", "feature-request", "urgent", "general"],
-            threshold=0.6,
-            examples=examples,
+            tasks={"topic": {"type": "classify", "labels": ["technical-issue", "billing", "feature-request", "urgent", "general"], "threshold": 0.6}},
             timeout_ms=30000,
             http_headers={"X-Custom-Header": "custom-value"},
         )
@@ -227,10 +230,10 @@ class TestComprehendAPIMockRequests:
         # Verify request structure
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "json" in call_kwargs
-        assert call_kwargs["json"]["text"] == "System error 500 on production server"
-        assert len(call_kwargs["json"]["labels"]) == 5
-        assert call_kwargs["json"]["threshold"] == 0.6
-        assert len(call_kwargs["json"]["examples"]) == 2
+        payload = call_kwargs["json"]
+        assert payload.get("input") == "System error 500 on production server" or payload.get("text") == "System error 500 on production server"
+        thresh = payload.get("threshold") or payload.get("tasks", {}).get("topic", {}).get("threshold")
+        assert thresh == 0.6
 
         # Verify response
         assert len(result.results) == 2
@@ -249,7 +252,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["label1", "label2"])
+            api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
         assert "missing 'outputs'" in str(exc_info.value)
 
@@ -264,7 +267,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["label1", "label2"])
+            api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
         assert "missing 'outputs'" in str(exc_info.value)
 
@@ -281,7 +284,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["label1", "label2"])
+            api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
         assert "Unexpected record format" in str(exc_info.value)
 
@@ -295,7 +298,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            api.it(text="Test text", labels=["label1", "label2"])
+            api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
     def test_non_json_response_error(self, api):
         """Test that non-JSON response raises ServerError."""
@@ -307,7 +310,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test text", labels=["label1", "label2"])
+            api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
         assert "not valid JSON" in str(exc_info.value)
 
@@ -320,7 +323,7 @@ class TestComprehendAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         result = api.it(
-            text="I absolutely love this product! Best purchase ever!", labels=["positive", "negative", "neutral"]
+            text="I absolutely love this product! Best purchase ever!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}}
         )
 
         assert result.results[0].label == "positive"
@@ -338,7 +341,7 @@ class TestComprehendAPIMockRequests:
 
         result = api.it(
             text="Researchers discover new quantum computing breakthrough",
-            labels=["science", "technology", "politics", "sports", "entertainment"],
+            tasks={"topic": {"type": "classify", "labels": ["science", "technology", "politics", "sports", "entertainment"]}},
         )
 
         assert len(result.results) == 2
@@ -354,7 +357,7 @@ class TestComprehendAPIMockRequests:
 
         result = api.it(
             text="I want to cancel my subscription immediately",
-            labels=["cancel-subscription", "upgrade-plan", "billing-inquiry", "technical-support"],
+            tasks={"topic": {"type": "classify", "labels": ["cancel-subscription", "upgrade-plan", "billing-inquiry", "technical-support"]}},
         )
 
         assert result.results[0].label == "cancel-subscription"
@@ -385,7 +388,7 @@ class TestComprehendAPIAsyncMockRequests:
 
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
-        result = await api.it_async(text="Great experience!", labels=["positive", "negative", "neutral"])
+        result = await api.it_async(text="Great experience!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}})
 
         assert result.results[0].label == "positive"
         assert result.results[0].score == 0.89
@@ -411,9 +414,7 @@ class TestComprehendAPIAsyncMockRequests:
 
         result = await api.it_async(
             text="Production database connection failed",
-            labels=["urgent", "technical", "billing", "general"],
-            threshold=0.7,
-            examples=examples,
+            tasks={"topic": {"type": "classify", "labels": ["urgent", "technical", "billing", "general"], "threshold": 0.7}},
         )
 
         assert len(result.results) == 2

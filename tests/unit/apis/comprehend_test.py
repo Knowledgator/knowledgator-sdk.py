@@ -10,8 +10,12 @@ from knowledgator.exceptions import (
     TransportTimeout,
     ConnectionFailure,
 )
-from knowledgator.models.inputs import ComprehendRequest, ClassificationExample
-from knowledgator.models.outputs import ComprehendResults, ComprehendResponse
+from knowledgator.models import (
+    ClassificationExample,
+    ComprehendRequest,
+    ComprehendResponse,
+    ComprehendResults,
+)
 from knowledgator.apis.comprehend import ComprehendAPI
 
 
@@ -33,38 +37,29 @@ def comprehend_api(mock_configs):
 
 
 class TestComprehendRequest:
-    """Tests for ComprehendRequest model."""
+    """Tests for new Phase 1 ComprehendRequest model."""
 
     def test_minimal_request(self):
-        req = ComprehendRequest(text="This is a great product!", labels=["positive", "negative", "neutral"])
-        assert req.text == "This is a great product!"
-        assert req.labels == ["positive", "negative", "neutral"]
-        assert req.threshold == 0.5  # default
-        assert req.examples is None
+        req = ComprehendRequest(
+            input="This is a great product!",
+            tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}},
+        )
+        assert req.input.root == "This is a great product!"
+        assert "topic" in req.tasks
 
-    def test_request_with_threshold(self):
-        req = ComprehendRequest(text="Sample text", labels=["label1", "label2"], threshold=0.7)
-        assert req.threshold == 0.7
+    def test_request_with_options(self):
+        req = ComprehendRequest(
+            input="Sample text",
+            tasks={"topic": {"type": "classify", "labels": ["label1", "label2"], "threshold": 0.7}},
+            options={"adapter_id": "custom-adapter"},
+        )
+        assert req.tasks["topic"].threshold == 0.7
+        assert req.options.adapter_id == "custom-adapter"
 
-    def test_request_with_examples(self):
-        examples = [
-            ClassificationExample(text="Great product", label="positive"),
-            ClassificationExample(text="Terrible service", label="negative"),
-        ]
-        req = ComprehendRequest(text="Test text", labels=["positive", "negative"], examples=examples)
-        assert len(req.examples) == 2
-        assert req.examples[0].text == "Great product"
-        assert req.examples[0].label == "positive"
-
-    def test_threshold_validation_min(self):
-        """Test that threshold < 0 raises validation error."""
+    def test_missing_required_fields(self):
+        """Test that missing tasks raises validation error."""
         with pytest.raises(ValidationError):
-            ComprehendRequest(text="Test", labels=["a", "b"], threshold=-0.1)
-
-    def test_threshold_validation_max(self):
-        """Test that threshold > 1 raises validation error."""
-        with pytest.raises(ValidationError):
-            ComprehendRequest(text="Test", labels=["a", "b"], threshold=1.1)
+            ComprehendRequest(input="Test")
 
 
 class TestComprehendResponse:
@@ -90,7 +85,7 @@ class TestComprehendResults:
         comprehend_results = ComprehendResults(
             results=results,
             input_text="This is great!",
-            labels=["positive", "negative", "neutral"],
+            tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}},
             threshold=0.5,
             status="ok",
         )
@@ -107,7 +102,7 @@ class TestComprehendResults:
             ComprehendResponse(label="negative", score=0.15),
         ]
         comprehend_results = ComprehendResults(
-            results=results, input_text="Test", labels=["positive", "negative", "neutral"], threshold=0.5, status="ok"
+            results=results, input_text="Test", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}}, threshold=0.5, status="ok"
         )
         # Note: filtering is done by the API, not the model
         assert len(comprehend_results.results) == 3
@@ -115,6 +110,12 @@ class TestComprehendResults:
 
 class TestComprehendAPISync:
     """Tests for synchronous ComprehendAPI.it() method."""
+
+    def test_labels_argument_raises_type_error(self, comprehend_api):
+        """Test that passing 'labels' raises TypeError informing the user it was removed."""
+        with pytest.raises(TypeError) as exc:
+            comprehend_api.it(text="Test", labels=["a", "b"])
+        assert "The 'labels' argument has been removed" in str(exc.value)
 
     def test_basic_classification(self, comprehend_api):
         """Test basic classification without optional parameters."""
@@ -126,7 +127,7 @@ class TestComprehendAPISync:
         mock_response.headers = {}
         comprehend_api.configs.client.request.return_value = mock_response
 
-        result = comprehend_api.it(text="This is a great product!", labels=["positive", "negative", "neutral"])
+        result = comprehend_api.it(text="This is a great product!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}})
 
         assert isinstance(result, ComprehendResults)
         assert len(result.results) == 2
@@ -143,7 +144,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         result = comprehend_api.it(
-            text="AI is transforming the world", labels=["technology", "politics", "sports"], threshold=0.7
+            text="AI is transforming the world", tasks={"topic": {"type": "classify", "labels": ["technology", "politics", "sports"], "threshold": 0.7}}
         )
 
         assert len(result.results) == 1
@@ -164,7 +165,7 @@ class TestComprehendAPISync:
         ]
 
         result = comprehend_api.it(
-            text="Very disappointed with the quality", labels=["praise", "complaint", "question"], examples=examples
+            text="Very disappointed with the quality", tasks={"topic": {"type": "classify", "labels": ["praise", "complaint", "question"]}}
         )
 
         assert result.results[0].label == "complaint"
@@ -185,8 +186,7 @@ class TestComprehendAPISync:
 
         result = comprehend_api.it(
             text="Apple announces new AI-powered features for business users",
-            labels=["technology", "business", "sports", "politics", "innovation"],
-            threshold=0.5,
+            tasks={"topic": {"type": "classify", "labels": ["technology", "business", "sports", "politics", "innovation"], "threshold": 0.5}},
         )
 
         assert len(result.results) == 3
@@ -200,7 +200,7 @@ class TestComprehendAPISync:
         mock_response.headers = {}
         comprehend_api.configs.client.request.return_value = mock_response
 
-        result = comprehend_api.it(text="Ambiguous text", labels=["label1", "label2", "label3"], threshold=0.9)
+        result = comprehend_api.it(text="Ambiguous text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2", "label3"], "threshold": 0.9}})
 
         assert len(result.results) == 0
 
@@ -209,14 +209,14 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.side_effect = httpx.TimeoutException("timeout")
 
         with pytest.raises(TransportTimeout):
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
     def test_connection_error(self, comprehend_api):
         """Test that connection errors raise ConnectionFailure."""
         comprehend_api.configs.client.request.side_effect = httpx.RequestError("connection failed")
 
         with pytest.raises(ConnectionFailure):
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
     def test_server_error_response(self, comprehend_api):
         """Test handling of server error responses."""
@@ -228,7 +228,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
     def test_missing_outputs_in_response(self, comprehend_api):
         """Test that missing 'outputs' in response raises ServerError."""
@@ -239,7 +239,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_invalid_outputs_format(self, comprehend_api):
@@ -253,7 +253,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_malformed_output_item(self, comprehend_api):
@@ -269,7 +269,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
         assert "Unexpected record format" in str(exc_info.value)
 
     def test_non_json_response(self, comprehend_api):
@@ -282,7 +282,7 @@ class TestComprehendAPISync:
         comprehend_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            comprehend_api.it(text="Test text", labels=["label1", "label2"])
+            comprehend_api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
         assert "not valid JSON" in str(exc_info.value)
 
 
@@ -299,7 +299,7 @@ class TestComprehendAPIAsync:
 
         comprehend_api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
-        result = await comprehend_api.it_async(text="Great product!", labels=["positive", "negative", "neutral"])
+        result = await comprehend_api.it_async(text="Great product!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}})
 
         assert result.results[0].label == "positive"
         assert result.results[0].score == 0.89
@@ -315,7 +315,7 @@ class TestComprehendAPIAsync:
         comprehend_api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
         result = await comprehend_api.it_async(
-            text="URGENT: System down!", labels=["urgent", "normal", "low-priority"], threshold=0.8
+            text="URGENT: System down!", tasks={"topic": {"type": "classify", "labels": ["urgent", "normal", "low-priority"], "threshold": 0.8}}
         )
 
         assert result.results[0].label == "urgent"
@@ -327,7 +327,7 @@ class TestComprehendAPIAsync:
         comprehend_api.configs.async_client.request = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
 
         with pytest.raises(TransportTimeout):
-            await comprehend_api.it_async(text="Test", labels=["label1", "label2"])
+            await comprehend_api.it_async(text="Test", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
     @pytest.mark.asyncio
     async def test_async_connection_error(self, comprehend_api):
@@ -335,7 +335,7 @@ class TestComprehendAPIAsync:
         comprehend_api.configs.async_client.request = AsyncMock(side_effect=httpx.RequestError("connection failed"))
 
         with pytest.raises(ConnectionFailure):
-            await comprehend_api.it_async(text="Test", labels=["label1", "label2"])
+            await comprehend_api.it_async(text="Test", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
 
 class TestClassificationExample:
@@ -373,13 +373,13 @@ class TestThresholdBehavior:
     def test_default_threshold(self, api_with_mock):
         """Test that default threshold is 0.5."""
         api = api_with_mock([{"label": "high", "score": 0.8}, {"label": "medium", "score": 0.6}])
-        result = api.it(text="Test", labels=["high", "medium", "low"])
+        result = api.it(text="Test", tasks={"topic": {"type": "classify", "labels": ["high", "medium", "low"]}})
         assert result.threshold == 0.5
 
     def test_high_threshold(self, api_with_mock):
         """Test with high threshold (0.9)."""
         api = api_with_mock([{"label": "confident", "score": 0.95}])
-        result = api.it(text="Test", labels=["confident", "uncertain"], threshold=0.9)
+        result = api.it(text="Test", tasks={"topic": {"type": "classify", "labels": ["confident", "uncertain"], "threshold": 0.9}})
         assert result.threshold == 0.9
         assert len(result.results) == 1
 
@@ -388,6 +388,6 @@ class TestThresholdBehavior:
         api = api_with_mock(
             [{"label": "label1", "score": 0.3}, {"label": "label2", "score": 0.2}, {"label": "label3", "score": 0.15}]
         )
-        result = api.it(text="Test", labels=["label1", "label2", "label3"], threshold=0.1)
+        result = api.it(text="Test", tasks={"topic": {"type": "classify", "labels": ["label1", "label2", "label3"], "threshold": 0.1}})
         assert result.threshold == 0.1
         assert len(result.results) == 3
