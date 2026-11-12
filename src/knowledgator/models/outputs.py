@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Union, Optional
 
-from pydantic import Field, BaseModel, ConfigDict, constr, confloat
+from pydantic import Field, BaseModel, ConfigDict, constr, confloat, model_validator
 
 # --- New Unified Inference Task Outputs ---
 
@@ -59,6 +59,30 @@ class SpanEntity(BaseModel):
     label: Optional[str] = None
     score: Optional[float] = None
     source: Optional[str] = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_fields(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            d = dict(data)
+            if "text" not in d and "span" in d:
+                d["text"] = d["span"]
+            elif "span" not in d and "text" in d:
+                d["span"] = d["text"]
+            if "label" not in d and "entity" in d:
+                d["label"] = d["entity"]
+            elif "entity" not in d and "label" in d:
+                d["entity"] = d["label"]
+            return d
+        return data
+
+    @property
+    def span(self) -> str:
+        return self.text
+
+    @property
+    def entity(self) -> Optional[str]:
+        return self.label
 
     def __getitem__(self, item: str) -> Any:
         return getattr(self, item)
@@ -185,10 +209,10 @@ class ComprehendResults(BaseModel):
                     "usage": raw.get("usage"),
                     "status": "ok",
                 }
-            elif isinstance(tasks_raw, list):
-                data = {"results": tasks_raw, "outputs": None, "raw": raw, "status": "ok"}
             else:
-                data = {"raw": raw, "results": {}, "outputs": {}}
+                raise ValueError(
+                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'"
+                )
         super().__init__(**data)
 
     def model_post_init(self, __context: Any) -> None:
@@ -250,10 +274,10 @@ class ExtractResults(BaseModel):
                     "usage": raw.get("usage"),
                     "status": "ok",
                 }
-            elif isinstance(tasks_raw, list):
-                data = {"results": tasks_raw, "outputs": None, "raw": raw, "status": "ok"}
             else:
-                data = {"raw": raw, "results": {}, "outputs": {}}
+                raise ValueError(
+                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'"
+                )
         super().__init__(**data)
 
     def model_post_init(self, __context: Any) -> None:

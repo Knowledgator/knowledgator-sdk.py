@@ -11,7 +11,6 @@ from ..models import (
     AnalyzeOptions,
     ComprehendRequest,
     ComprehendResults,
-    ComprehendResponse,
     parse_task_output,
 )
 from ..exceptions import (
@@ -39,43 +38,6 @@ class ComprehendAPI(BaseAPI):
     ENDPOINTS_CONFIG = ComprehendEndpointsConfig()
     SUCCESS_STATUS = "ok"
     DEFAULT_THRESHOLD = 0.5
-
-    def parse_labels(
-        self,
-        raw: dict[str, Any],
-        *,
-        text_fallback: str,
-        labels_fallback: List[str],
-        threshold_fallback: Optional[float] = None,
-    ):
-        """Legacy helper for flat outputs list."""
-        outputs = raw.get("outputs")
-        if not isinstance(outputs, list):
-            raise ServerError(
-                "Unexpected response shape (missing 'outputs')",
-                status_code=200,
-                payload={"raw": raw},
-            )
-
-        try:
-            parsed_results = [ComprehendResponse.model_validate(o) for o in outputs]
-        except PydanticValidationError as exc:
-            raise ServerError(
-                "Unexpected record format inside 'outputs'",
-                status_code=200,
-                payload={"raw": raw},
-            ) from exc
-
-        return ComprehendResults(
-            results=parsed_results,
-            input_text=raw.get("input_text", text_fallback),
-            labels=raw.get("labels", labels_fallback),
-            threshold=raw.get(
-                "threshold",
-                threshold_fallback if threshold_fallback is not None else self.DEFAULT_THRESHOLD,
-            ),
-            status=raw.get("status", self.SUCCESS_STATUS),
-        )
 
     def _build_request_body(
         self,
@@ -146,16 +108,7 @@ class ComprehendAPI(BaseAPI):
                 threshold=task_threshold,
                 status="ok",
             )
-        if isinstance(tasks_raw, list):
-            # Legacy list of outputs response
-            return self.parse_labels(
-                raw,
-                text_fallback=str(target_input),
-                labels_fallback=[],
-                threshold_fallback=task_threshold,
-            )
-
-        raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
+        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'", payload={"raw": raw})
 
     def it(
         self,

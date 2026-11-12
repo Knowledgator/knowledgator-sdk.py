@@ -9,16 +9,14 @@ from pydantic import ValidationError as PydanticValidationError
 from .base import BaseAPI, EndpointsConfig
 from ..models import (
     AnalyzeOptions,
-    EntityResponse,
+    AnalyzeTaskRelation,
+    AnalyzeTaskSpan,
+    ExtractBaseRequest,
+    ExtractRelationsResults,
     ExtractRequest,
     ExtractResults,
-    AnalyzeTaskSpan,
-    RelationResponse,
-    ExtractBaseRequest,
-    ExtractBaseResults,
-    AnalyzeTaskRelation,
     ExtractSummaryResults,
-    ExtractRelationsResults,
+    RelationResponse,
     parse_task_output,
 )
 from ..exceptions import (
@@ -50,41 +48,6 @@ class ExtractAPI(BaseAPI):
     SUCCESS_STATUS = "ok"
     DEFAULT_THRESHOLD = 0.5
 
-    def _parse_entities(
-        self,
-        raw: dict[str, Any],
-        *,
-        text_fallback: str,
-        labels_fallback: List[str],
-        threshold_fallback: Optional[float],
-    ) -> ExtractBaseResults:
-        outputs = raw.get("outputs")
-        if not isinstance(outputs, list):
-            raise ServerError(
-                "Unexpected response shape (missing 'outputs')",
-                payload={"raw": raw},
-            )
-
-        try:
-            entities = [EntityResponse.model_validate(o) for o in outputs]
-        except PydanticValidationError as exc:
-            raise ServerError(
-                "Unexpected entity record format inside 'outputs'",
-                payload={"raw": raw},
-            ) from exc
-
-        return ExtractBaseResults(
-            results=entities,
-            input_text=raw.get("input_text", text_fallback),
-            labels=raw.get("labels") or raw.get("entities") or labels_fallback,
-            threshold=raw.get(
-                "threshold",
-                threshold_fallback
-                if threshold_fallback is not None
-                else self.DEFAULT_THRESHOLD,
-            ),
-            status=raw.get("status", self.SUCCESS_STATUS),
-        )
 
     def _parse_relations(
         self,
@@ -189,15 +152,7 @@ class ExtractAPI(BaseAPI):
                 threshold=task_threshold,
                 status="ok",
             )
-        if isinstance(tasks_raw, list):
-            return self._parse_entities(
-                raw,
-                text_fallback=str(target_input),
-                labels_fallback=task_labels or ["entity"],
-                threshold_fallback=task_threshold,
-            )
-
-        raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
+        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'", payload={"raw": raw})
 
     def _build_extract_request_body(
         self,
