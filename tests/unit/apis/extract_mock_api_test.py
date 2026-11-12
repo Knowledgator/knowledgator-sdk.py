@@ -39,10 +39,15 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "organization", "span": "Apple Inc.", "start": 0, "end": 10, "score": 0.95},
-                {"entity": "location", "span": "California", "start": 35, "end": 45, "score": 0.88},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "organization", "span": "Apple Inc.", "start": 0, "end": 10, "score": 0.95},
+                        {"entity": "location", "span": "California", "start": 35, "end": 45, "score": 0.88},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -66,12 +71,12 @@ class TestExtractGeneralAPIMockRequests:
             assert payload["entities"] == ["person", "organization", "location"]
 
         # Verify response
-        assert len(result.results) == 2
-        assert result.results[0].entity == "organization"
-        assert result.results[0].span == "Apple Inc."
-        assert result.results[0].start == 0
-        assert result.results[0].end == 10
-        assert result.results[0].score == 0.95
+        assert len(result.entities.value) == 2
+        assert result.entities.value[0].entity == "organization"
+        assert result.entities.value[0].span == "Apple Inc."
+        assert result.entities.value[0].start == 0
+        assert result.entities.value[0].end == 10
+        assert result.entities.value[0].score == 0.95
 
     def test_request_with_threshold(self, api):
         """Test request with custom threshold parameter."""
@@ -79,7 +84,12 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "organization", "span": "Google", "start": 0, "end": 6, "score": 0.92}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "organization", "span": "Google", "start": 0, "end": 6, "score": 0.92}],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -97,9 +107,9 @@ class TestExtractGeneralAPIMockRequests:
         assert thresh == 0.7
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].entity == "organization"
-        assert result.results[0].score >= 0.7
+        assert len(result.entities.value) == 1
+        assert result.entities.value[0].entity == "organization"
+        assert result.entities.value[0].score >= 0.7
 
     def test_request_with_prompt(self, api):
         """Test request with prompt parameter."""
@@ -107,10 +117,15 @@ class TestExtractGeneralAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "person", "span": "John Smith", "start": 0, "end": 10, "score": 0.94},
-                {"entity": "organization", "span": "Microsoft", "start": 20, "end": 29, "score": 0.91},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "person", "span": "John Smith", "start": 0, "end": 10, "score": 0.94},
+                        {"entity": "organization", "span": "Microsoft", "start": 20, "end": 29, "score": 0.91},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -131,18 +146,23 @@ class TestExtractGeneralAPIMockRequests:
         )
 
         # Verify response
-        assert len(result.results) == 2
+        assert len(result.entities.value) == 2
 
     def test_multiple_entities_extracted(self, api):
         """Test extraction of multiple entity types."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"entity": "person", "span": "Elon Musk", "start": 0, "end": 9, "score": 0.97},
-                {"entity": "organization", "span": "Tesla", "start": 18, "end": 23, "score": 0.95},
-                {"entity": "product", "span": "Model 3", "start": 35, "end": 42, "score": 0.89},
-            ]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [
+                        {"entity": "person", "span": "Elon Musk", "start": 0, "end": 9, "score": 0.97},
+                        {"entity": "organization", "span": "Tesla", "start": 18, "end": 23, "score": 0.95},
+                        {"entity": "product", "span": "Model 3", "start": 35, "end": 42, "score": 0.89},
+                    ],
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -152,16 +172,23 @@ class TestExtractGeneralAPIMockRequests:
             tasks={"entities": {"type": "span", "labels": ["person", "organization", "product", "location"]}},
         )
 
-        assert len(result.results) == 3
-        assert result.results[0].entity == "person"
-        assert result.results[1].entity == "organization"
-        assert result.results[2].entity == "product"
+        assert len(result.entities.value) == 3
+        assert result.entities.value[0].entity == "person"
+        assert result.entities.value[1].entity == "organization"
+        assert result.entities.value[2].entity == "product"
 
     def test_no_entities_above_threshold(self, api):
         """Test when no entities meet the threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [],
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -169,16 +196,20 @@ class TestExtractGeneralAPIMockRequests:
             text="Ambiguous text with no clear entities", tasks={"entities": {"type": "span", "labels": ["person", "organization", "location"], "threshold": 0.9}}
         )
 
-        assert len(result.results) == 0
+        assert len(result.entities.value) == 0
 
     def test_complete_request_all_fields(self, api):
         """Test complete request with all optional fields populated."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "person", "span": "Dr. Smith", "start": 0, "end": 9, "score": 0.93}],
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "person", "span": "Dr. Smith", "start": 0, "end": 9, "score": 0.93}],
+                }
+            },
             "input_text": "Dr. Smith published research on AI",
-            "labels": ["person", "organization", "technology"],
             "threshold": 0.6,
             "status": "ok",
         }
@@ -202,8 +233,8 @@ class TestExtractGeneralAPIMockRequests:
         assert thresh == 0.6
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].entity == "person"
+        assert len(result.entities.value) == 1
+        assert result.entities.value[0].entity == "person"
         assert result.threshold == 0.6
         assert result.status == "ok"
 
@@ -223,11 +254,11 @@ class TestExtractGeneralAPIMockRequests:
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_invalid_outputs_format_error(self, api):
-        """Test that outputs not being a list raises ServerError."""
+        """Test that outputs not being a dict raises ServerError."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": "not a list"  # Should be a list
+            "outputs": "not a list"
         }
         mock_response.headers = {"x-request-id": "req-format-err"}
         api.configs.client.request.return_value = mock_response
@@ -235,7 +266,7 @@ class TestExtractGeneralAPIMockRequests:
         with pytest.raises(ServerError) as exc_info:
             api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
-        assert "missing 'outputs'" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
 
     def test_malformed_entity_item_error(self, api):
         """Test that malformed items in outputs raise ServerError."""
@@ -243,7 +274,7 @@ class TestExtractGeneralAPIMockRequests:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "outputs": [
-                {"entity": "person"}  # Missing required fields
+                {"entity": "person"}  # List format instead of dict
             ]
         }
         mock_response.headers = {"x-request-id": "req-malformed"}
@@ -252,7 +283,8 @@ class TestExtractGeneralAPIMockRequests:
         with pytest.raises(ServerError) as exc_info:
             api.it(text="Test text", tasks={"entities": {"type": "span", "labels": ["entity1", "entity2"]}})
 
-        assert "Unexpected entity record format" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
+
 
     def test_server_error_500(self, api):
         """Test handling of 500 Internal Server Error."""
@@ -548,7 +580,12 @@ class TestExtractAPIAsyncMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"entity": "organization", "span": "Amazon", "start": 0, "end": 6, "score": 0.94}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"entity": "organization", "span": "Amazon", "start": 0, "end": 6, "score": 0.94}],
+                }
+            }
         }
         mock_response.headers = {}
 
@@ -556,8 +593,8 @@ class TestExtractAPIAsyncMockRequests:
         with patch.object(api, "send_async", new=AsyncMock(return_value=mock_response)):
             result = await api.it_async(text="Amazon launches new service", tasks={"entities": {"type": "span", "labels": ["organization", "product"]}})
 
-            assert result.results[0].span == "Amazon"
-            assert result.results[0].entity == "organization"
+            assert result.entities.value[0].span == "Amazon"
+            assert result.entities.value[0].entity == "organization"
 
     @pytest.mark.asyncio
     async def test_async_relation_extraction(self, api):

@@ -43,7 +43,13 @@ class TestComprehendAPIMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"label": "positive", "score": 0.8734}, {"label": "neutral", "score": 0.5123}]
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["positive", "neutral"],
+                    "scores": {"positive": 0.8734, "neutral": 0.5123},
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -66,18 +72,25 @@ class TestComprehendAPIMockRequests:
             assert payload.get("labels") == ["positive", "negative", "neutral"]
 
         # Verify response
-        assert len(result.results) == 2
-        assert result.results[0].label == "positive"
-        assert result.results[0].score == 0.8734
-        assert result.results[1].label == "neutral"
-        assert result.results[1].score == 0.5123
+        assert "topic" in result.results
+        assert result.topic.value == ["positive", "neutral"]
+        assert result.topic.scores["positive"] == 0.8734
+        assert result.topic.scores["neutral"] == 0.5123
 
     def test_request_with_threshold(self, api):
         """Test request with custom threshold parameter."""
         # Mock response with filtered results
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "technology", "score": 0.92}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "technology",
+                    "scores": {"technology": 0.92},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -95,16 +108,23 @@ class TestComprehendAPIMockRequests:
         assert thresh == 0.7
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].label == "technology"
-        assert result.results[0].score >= 0.7
+        assert result.topic.value == "technology"
+        assert result.topic.scores["technology"] >= 0.7
 
     def test_request_with_examples(self, api):
         """Test request with few-shot examples."""
         # Mock response
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "complaint", "score": 0.91}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "complaint",
+                    "scores": {"complaint": 0.91},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -127,18 +147,20 @@ class TestComprehendAPIMockRequests:
         assert payload.get("input") == "The product quality is unacceptable" or payload.get("text") == "The product quality is unacceptable"
 
         # Verify response
-        assert result.results[0].label == "complaint"
+        assert result.topic.value == "complaint"
 
     def test_multi_label_classification(self, api):
         """Test multi-label classification returning multiple labels above threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [
-                {"label": "technology", "score": 0.95},
-                {"label": "business", "score": 0.87},
-                {"label": "innovation", "score": 0.72},
-            ]
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["technology", "business", "innovation"],
+                    "scores": {"technology": 0.95, "business": 0.87, "innovation": 0.72},
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -149,18 +171,21 @@ class TestComprehendAPIMockRequests:
         )
 
         # Verify multiple labels returned
-        assert len(result.results) == 3
-        assert result.results[0].label == "technology"
-        assert result.results[1].label == "business"
-        assert result.results[2].label == "innovation"
-        assert all(r.score >= 0.5 for r in result.results)
+        assert result.topic.value == ["technology", "business", "innovation"]
+        assert all(score >= 0.5 for score in result.topic.scores.values())
 
     def test_zero_shot_classification(self, api):
         """Test zero-shot classification without examples."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"label": "urgent", "score": 0.94}, {"label": "action-required", "score": 0.81}]
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["urgent", "action-required"],
+                    "scores": {"urgent": 0.94, "action-required": 0.81},
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -170,14 +195,21 @@ class TestComprehendAPIMockRequests:
             tasks={"topic": {"type": "classify", "labels": ["urgent", "normal", "low-priority", "action-required", "informational"]}},
         )
 
-        assert len(result.results) == 2
-        assert result.results[0].label == "urgent"
+        assert "urgent" in result.topic.value
 
     def test_no_labels_above_threshold(self, api):
         """Test when no labels meet the threshold."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": [],
+                    "scores": {},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -185,30 +217,42 @@ class TestComprehendAPIMockRequests:
             text="Ambiguous text with unclear intent", tasks={"topic": {"type": "classify", "labels": ["category1", "category2", "category3"], "threshold": 0.9}}
         )
 
-        assert len(result.results) == 0
+        assert len(result.topic.value) == 0
 
     def test_single_label_classification(self, api):
         """Test classification with high confidence in single label."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "spam", "score": 0.99}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "spam",
+                    "scores": {"spam": 0.99},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
         result = api.it(text="CLICK HERE NOW!!! WIN $1000000 FREE!!!", tasks={"topic": {"type": "classify", "labels": ["spam", "legitimate", "promotional"]}})
 
-        assert len(result.results) == 1
-        assert result.results[0].label == "spam"
-        assert result.results[0].score > 0.95
+        assert result.topic.value == "spam"
+        assert result.topic.scores["spam"] > 0.95
 
     def test_complete_request_all_fields(self, api):
         """Test complete request with all optional fields populated."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"label": "technical-issue", "score": 0.89}, {"label": "urgent", "score": 0.76}],
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["technical-issue", "urgent"],
+                    "scores": {"technical-issue": 0.89, "urgent": 0.76},
+                }
+            },
             "input_text": "System error 500 on production server",
-            "labels": ["technical-issue", "billing", "feature-request", "urgent", "general"],
             "threshold": 0.6,
             "status": "ok",
         }
@@ -236,8 +280,7 @@ class TestComprehendAPIMockRequests:
         assert thresh == 0.6
 
         # Verify response
-        assert len(result.results) == 2
-        assert result.results[0].label == "technical-issue"
+        assert result.topic.value == ["technical-issue", "urgent"]
         assert result.threshold == 0.6
         assert result.status == "ok"
 
@@ -257,11 +300,11 @@ class TestComprehendAPIMockRequests:
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_invalid_outputs_format_error(self, api):
-        """Test that outputs not being a list raises ServerError."""
+        """Test that outputs not being a dict raises ServerError."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": "not a list"  # Should be a list
+            "outputs": "not a dict"
         }
         mock_response.headers = {"x-request-id": "req-format-err"}
         api.configs.client.request.return_value = mock_response
@@ -269,7 +312,7 @@ class TestComprehendAPIMockRequests:
         with pytest.raises(ServerError) as exc_info:
             api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
-        assert "missing 'outputs'" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
 
     def test_malformed_output_item_error(self, api):
         """Test that malformed items in outputs raise ServerError."""
@@ -277,7 +320,7 @@ class TestComprehendAPIMockRequests:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "outputs": [
-                {"label": "test"}  # Missing 'score' field
+                {"label": "test"}  # List instead of dict
             ]
         }
         mock_response.headers = {"x-request-id": "req-malformed"}
@@ -286,7 +329,7 @@ class TestComprehendAPIMockRequests:
         with pytest.raises(ServerError) as exc_info:
             api.it(text="Test text", tasks={"topic": {"type": "classify", "labels": ["label1", "label2"]}})
 
-        assert "Unexpected record format" in str(exc_info.value)
+        assert "expected task-keyed dictionary" in str(exc_info.value)
 
     def test_server_error_500(self, api):
         """Test handling of 500 Internal Server Error."""
@@ -318,7 +361,15 @@ class TestComprehendAPIMockRequests:
         """Test sentiment analysis use case."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "positive", "score": 0.92}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "positive",
+                    "scores": {"positive": 0.92},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -326,15 +377,21 @@ class TestComprehendAPIMockRequests:
             text="I absolutely love this product! Best purchase ever!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}}
         )
 
-        assert result.results[0].label == "positive"
-        assert result.results[0].score > 0.9
+        assert result.topic.value == "positive"
+        assert result.topic.scores["positive"] > 0.9
 
     def test_topic_classification_use_case(self, api):
         """Test topic classification use case."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"label": "science", "score": 0.88}, {"label": "technology", "score": 0.79}]
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["science", "technology"],
+                    "scores": {"science": 0.88, "technology": 0.79},
+                }
+            }
         }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
@@ -344,14 +401,21 @@ class TestComprehendAPIMockRequests:
             tasks={"topic": {"type": "classify", "labels": ["science", "technology", "politics", "sports", "entertainment"]}},
         )
 
-        assert len(result.results) == 2
-        assert result.results[0].label == "science"
+        assert "science" in result.topic.value
 
     def test_intent_detection_use_case(self, api):
         """Test intent detection use case."""
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "cancel-subscription", "score": 0.94}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "cancel-subscription",
+                    "scores": {"cancel-subscription": 0.94},
+                }
+            }
+        }
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
@@ -360,7 +424,7 @@ class TestComprehendAPIMockRequests:
             tasks={"topic": {"type": "classify", "labels": ["cancel-subscription", "upgrade-plan", "billing-inquiry", "technical-support"]}},
         )
 
-        assert result.results[0].label == "cancel-subscription"
+        assert result.topic.value == "cancel-subscription"
 
 
 class TestComprehendAPIAsyncMockRequests:
@@ -383,15 +447,23 @@ class TestComprehendAPIAsyncMockRequests:
 
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": [{"label": "positive", "score": 0.89}]}
+        mock_response.json.return_value = {
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": "positive",
+                    "scores": {"positive": 0.89},
+                }
+            }
+        }
         mock_response.headers = {}
 
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
         result = await api.it_async(text="Great experience!", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}})
 
-        assert result.results[0].label == "positive"
-        assert result.results[0].score == 0.89
+        assert result.topic.value == "positive"
+        assert result.topic.scores["positive"] == 0.89
 
     @pytest.mark.asyncio
     async def test_async_with_all_parameters(self, api):
@@ -401,7 +473,13 @@ class TestComprehendAPIAsyncMockRequests:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "outputs": [{"label": "urgent", "score": 0.95}, {"label": "technical", "score": 0.82}]
+            "outputs": {
+                "topic": {
+                    "type": "classify",
+                    "value": ["urgent", "technical"],
+                    "scores": {"urgent": 0.95, "technical": 0.82},
+                }
+            }
         }
         mock_response.headers = {}
 
@@ -417,6 +495,6 @@ class TestComprehendAPIAsyncMockRequests:
             tasks={"topic": {"type": "classify", "labels": ["urgent", "technical", "billing", "general"], "threshold": 0.7}},
         )
 
-        assert len(result.results) == 2
-        assert result.results[0].label == "urgent"
+        assert result.topic.value == ["urgent", "technical"]
         assert result.threshold == 0.7
+

@@ -38,7 +38,9 @@ class TestInferenceModelIdRouting:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
-            "outputs": [{"label": "tech", "score": 0.98}]
+            "outputs": {
+                "topic": {"type": "classify", "value": "tech", "scores": {"tech": 0.98}}
+            }
         }
         mock_resp.headers = {}
         sdk_configs.client.request.return_value = mock_resp
@@ -61,7 +63,9 @@ class TestInferenceModelIdRouting:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
-            "outputs": [{"label": "tech", "score": 0.98}]
+            "outputs": {
+                "topic": {"type": "classify", "value": "tech", "scores": {"tech": 0.98}}
+            }
         }
         mock_resp.headers = {}
         sdk_configs.async_client.request = AsyncMock(return_value=mock_resp)
@@ -83,7 +87,12 @@ class TestInferenceModelIdRouting:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
-            "outputs": [{"span": "Apple", "entity": "ORG", "start": 0, "end": 5, "score": 0.99}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"label": "ORG", "span": "Apple", "start": 0, "end": 5, "score": 0.99}],
+                }
+            }
         }
         mock_resp.headers = {}
         sdk_configs.client.request.return_value = mock_resp
@@ -106,7 +115,12 @@ class TestInferenceModelIdRouting:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
-            "outputs": [{"span": "Apple", "entity": "ORG", "start": 0, "end": 5, "score": 0.99}]
+            "outputs": {
+                "entities": {
+                    "type": "span",
+                    "value": [{"label": "ORG", "span": "Apple", "start": 0, "end": 5, "score": 0.99}],
+                }
+            }
         }
         mock_resp.headers = {}
         sdk_configs.async_client.request = AsyncMock(return_value=mock_resp)

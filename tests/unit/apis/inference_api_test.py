@@ -22,7 +22,7 @@ class TestVerification:
         api = ComprehendAPI(mock_configs)
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {"outputs": {"topic": {"type": "classify", "value": "l1"}}}
         api.configs.client.request.return_value = mock_response
 
         api.it(text="test", tasks={"topic": {"type": "classify", "labels": ["l1"]}}, adapter_id="my-custom-model")
@@ -38,7 +38,7 @@ class TestVerification:
         api = ExtractAPI(mock_configs)
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {"outputs": {"entities": {"type": "span", "value": []}}}
         api.configs.client.request.return_value = mock_response
 
         api.it(text="test", tasks={"entities": {"type": "span", "labels": ["l1"]}}, adapter_id="my-extract-model")
@@ -73,7 +73,7 @@ class TestVerification:
         api = ComprehendAPI(mock_configs)
         mock_response = MagicMock()
         mock_response.status_code = 200
-        mock_response.json.return_value = {"outputs": []}
+        mock_response.json.return_value = {"outputs": {"topic": {"type": "classify", "value": "l1"}}}
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
         await api.it_async(text="test", tasks={"topic": {"type": "classify", "labels": ["l1"]}}, adapter_id="async-model")
