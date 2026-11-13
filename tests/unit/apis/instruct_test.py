@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+from pydantic import ValidationError
 
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import (
@@ -38,11 +39,15 @@ class TestInstructRequest:
     """Tests for InstructRequest model."""
 
     def test_minimal_request(self):
-        req = InstructRequest(text="Summarize this document")
+        req = InstructRequest(text="Summarize this document", template='{"summary": ""}')
         assert req.text == "Summarize this document"
-        assert req.template is None
+        assert req.template == '{"summary": ""}'
         assert req.files is None
         assert req.output_type is None
+
+    def test_missing_template_raises_validation_error(self):
+        with pytest.raises(ValidationError):
+            InstructRequest(text="Summarize this document")
 
     def test_full_request(self):
         files = [FileMetadata(name="doc.pdf", content=b"pdf content")]
@@ -53,9 +58,14 @@ class TestInstructRequest:
         assert req.files[0].name == "doc.pdf"
         assert req.output_type == "json"
 
+    def test_request_with_dict_template(self):
+        template = {"name": "", "company": ""}
+        req = InstructRequest(text="Extract company info", template=template)
+        assert req.template == template
+
     def test_request_with_file_reference_only(self):
         files = [FileMetadata(name="report.docx")]
-        req = InstructRequest(text="Summarize the report", files=files)
+        req = InstructRequest(text="Summarize the report", template='{"summary": ""}', files=files)
         assert req.files[0].content is None
 
 
@@ -96,14 +106,28 @@ class TestInstructAPISync:
     """Tests for synchronous InstructAPI.it() method."""
 
     def test_basic_instruction(self, instruct_api):
-        """Test basic instruction without optional parameters."""
+        """Test basic instruction with string template."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {"outputs": {"summary": "Document summary here"}}
         mock_response.headers = {}
         instruct_api.configs.client.request.return_value = mock_response
 
-        result = instruct_api.it(text="Summarize this document")
+        result = instruct_api.it(text="Summarize this document", template='{"summary": ""}')
+
+        assert isinstance(result, InstructResults)
+        assert result.outputs["summary"] == "Document summary here"
+        assert result.parsed is True
+
+    def test_instruction_with_dict_template(self, instruct_api):
+        """Test instruction with dictionary template."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"outputs": {"summary": "Document summary here"}}
+        mock_response.headers = {}
+        instruct_api.configs.client.request.return_value = mock_response
+
+        result = instruct_api.it(text="Summarize this document", template={"summary": ""})
 
         assert isinstance(result, InstructResults)
         assert result.outputs["summary"] == "Document summary here"
@@ -136,7 +160,11 @@ class TestInstructAPISync:
 
         files = [FileMetadata(name="file1.pdf"), FileMetadata(name="file2.docx", content=b"doc content")]
 
-        result = instruct_api.it(text="Compare these two documents", files=files)
+        result = instruct_api.it(
+            text="Compare these two documents",
+            template='{"comparison": ""}',
+            files=files,
+        )
 
         assert "file1.pdf" in result.outputs or isinstance(result.outputs, str)
 
@@ -154,7 +182,11 @@ class TestInstructAPISync:
         mock_response.headers = {}
         instruct_api.configs.client.request.return_value = mock_response
 
-        result = instruct_api.it(text="List the steps to complete this task", output_type="list")
+        result = instruct_api.it(
+            text="List the steps to complete this task",
+            template='{"steps": []}',
+            output_type="list",
+        )
 
         assert isinstance(result.outputs, list)
         assert len(result.outputs) == 3
@@ -164,14 +196,14 @@ class TestInstructAPISync:
         instruct_api.configs.client.request.side_effect = httpx.TimeoutException("timeout")
 
         with pytest.raises(TransportTimeout):
-            instruct_api.it(text="Test instruction")
+            instruct_api.it(text="Test instruction", template='{"summary": ""}')
 
     def test_connection_error(self, instruct_api):
         """Test that connection errors raise ConnectionFailure."""
         instruct_api.configs.client.request.side_effect = httpx.RequestError("connection failed")
 
         with pytest.raises(ConnectionFailure):
-            instruct_api.it(text="Test instruction")
+            instruct_api.it(text="Test instruction", template='{"summary": ""}')
 
     def test_server_error_response(self, instruct_api):
         """Test handling of server error responses."""
@@ -183,7 +215,7 @@ class TestInstructAPISync:
         instruct_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            instruct_api.it(text="Test instruction")
+            instruct_api.it(text="Test instruction", template='{"summary": ""}')
 
     def test_missing_outputs_in_response(self, instruct_api):
         """Test that missing 'outputs' in response raises ServerError."""
@@ -194,7 +226,7 @@ class TestInstructAPISync:
         instruct_api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            instruct_api.it(text="Test instruction")
+            instruct_api.it(text="Test instruction", template='{"summary": ""}')
         assert "missing 'outputs'" in str(exc_info.value)
 
     def test_non_json_response_wrapped_as_string(self, instruct_api):
@@ -206,7 +238,7 @@ class TestInstructAPISync:
         mock_response.headers = {}
         instruct_api.configs.client.request.return_value = mock_response
 
-        result = instruct_api.it(text="Test instruction")
+        result = instruct_api.it(text="Test instruction", template='{"summary": ""}')
 
         assert result.outputs == "Plain text response from model"
         assert result.parsed is False
@@ -225,7 +257,7 @@ class TestInstructAPIAsync:
 
         instruct_api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
-        result = await instruct_api.it_async(text="What is the meaning of life?")
+        result = await instruct_api.it_async(text="What is the meaning of life?", template='{"answer": ""}')
 
         assert result.outputs["answer"] == "42"
         assert result.parsed is True
@@ -248,6 +280,25 @@ class TestInstructAPIAsync:
         assert result.outputs["title"] == "Report Title"
 
     @pytest.mark.asyncio
+    async def test_async_with_dict_template(self, instruct_api):
+        """Test async instruction with dictionary template."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "outputs": {"title": "Report Title", "sections": ["intro", "body", "conclusion"]}
+        }
+        mock_response.headers = {}
+
+        instruct_api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        result = await instruct_api.it_async(
+            text="Generate a report structure",
+            template={"title": "", "sections": []},
+        )
+
+        assert result.outputs["title"] == "Report Title"
+
+    @pytest.mark.asyncio
     async def test_async_invalid_template(self, instruct_api):
         """Test that invalid template raises BadRequest in async."""
         with pytest.raises(BadRequest):
@@ -259,7 +310,7 @@ class TestInstructAPIAsync:
         instruct_api.configs.async_client.request = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
 
         with pytest.raises(TransportTimeout):
-            await instruct_api.it_async(text="Test")
+            await instruct_api.it_async(text="Test", template='{"summary": ""}')
 
     @pytest.mark.asyncio
     async def test_async_connection_error(self, instruct_api):
@@ -267,7 +318,7 @@ class TestInstructAPIAsync:
         instruct_api.configs.async_client.request = AsyncMock(side_effect=httpx.RequestError("connection failed"))
 
         with pytest.raises(ConnectionFailure):
-            await instruct_api.it_async(text="Test")
+            await instruct_api.it_async(text="Test", template='{"summary": ""}')
 
 
 class TestFileMetadata:
@@ -310,31 +361,31 @@ class TestOutputTypes:
     def test_output_type_json(self, api_with_mock):
         """Test output_type='json' returns object."""
         api = api_with_mock({"key": "value"})
-        result = api.it(text="Return JSON", output_type="json")
+        result = api.it(text="Return JSON", template='{"key": ""}', output_type="json")
         assert isinstance(result.outputs, dict)
 
     def test_output_type_string(self, api_with_mock):
         """Test output_type='string' returns string."""
         api = api_with_mock("This is a plain string response")
-        result = api.it(text="Return string", output_type="string")
+        result = api.it(text="Return string", template='{"key": ""}', output_type="string")
         assert isinstance(result.outputs, str)
 
     def test_output_type_list(self, api_with_mock):
         """Test output_type='list' returns array."""
         api = api_with_mock(["item1", "item2", "item3"])
-        result = api.it(text="Return list", output_type="list")
+        result = api.it(text="Return list", template='{"items": []}', output_type="list")
         assert isinstance(result.outputs, list)
 
     def test_output_type_markdown(self, api_with_mock):
         """Test output_type='markdown' returns markdown string."""
         markdown = "# Title\n\n- Point 1\n- Point 2"
         api = api_with_mock(markdown)
-        result = api.it(text="Return markdown", output_type="markdown")
+        result = api.it(text="Return markdown", template='{"content": ""}', output_type="markdown")
         assert "# Title" in result.outputs
 
     def test_output_type_custom(self, api_with_mock):
         """Test custom output_type like 'test_cases'."""
         test_cases = [{"input": "a", "expected": "b"}, {"input": "c", "expected": "d"}]
         api = api_with_mock(test_cases)
-        result = api.it(text="Generate test cases", output_type="test_cases")
+        result = api.it(text="Generate test cases", template='{"cases": []}', output_type="test_cases")
         assert len(result.outputs) == 2

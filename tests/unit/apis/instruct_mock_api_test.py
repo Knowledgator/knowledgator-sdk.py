@@ -44,7 +44,7 @@ class TestInstructAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         # Make request
-        result = api.it(text="Summarize this policy in 3 bullet points.")
+        result = api.it(text="Summarize this policy in 3 bullet points.", template='{"summary": ""}')
 
         # Verify request was made
         assert api.configs.client.request.called
@@ -53,7 +53,7 @@ class TestInstructAPIMockRequests:
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "data" in call_kwargs
         assert call_kwargs["data"]["text"] == "Summarize this policy in 3 bullet points."
-        assert "template" not in call_kwargs["data"]
+        assert call_kwargs["data"]["template"] == '{"summary": ""}'
         assert "filesmetadata" not in call_kwargs["data"]
         assert "output_type" not in call_kwargs["data"]
         assert not call_kwargs.get("files")  # No file attachments in minimal request
@@ -114,11 +114,12 @@ class TestInstructAPIMockRequests:
         files = [FileMetadata(name="file-id-1"), FileMetadata(name="file-id-2")]
 
         # Make request
-        api.it(text="Compare these two documents", files=files)
+        api.it(text="Compare these two documents", template='{"comparison": ""}', files=files)
 
         # Verify request body includes filesmetadata in data
         call_kwargs = api.configs.client.request.call_args.kwargs
         assert "data" in call_kwargs
+        assert call_kwargs["data"]["template"] == '{"comparison": ""}'
         assert "filesmetadata" in call_kwargs["data"]
         filesmetadata = json.loads(call_kwargs["data"]["filesmetadata"])
         assert len(filesmetadata) == 2
@@ -142,7 +143,7 @@ class TestInstructAPIMockRequests:
         files = [FileMetadata(name="document.pdf", content=b"PDF binary content here")]
 
         # Make request
-        result = api.it(text="Process this document", files=files, output_type="list")
+        result = api.it(text="Process this document", template='{"steps": []}', files=files, output_type="list")
 
         # Verify filesmetadata in data
         call_kwargs = api.configs.client.request.call_args.kwargs
@@ -170,7 +171,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Return structured data", output_type="json")
+        result = api.it(text="Return structured data", template='{"status": ""}', output_type="json")
 
         assert isinstance(result.outputs, dict)
         assert result.outputs["status"] == "success"
@@ -184,7 +185,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Generate a list of steps", output_type="list")
+        result = api.it(text="Generate a list of steps", template='{"steps": []}', output_type="list")
 
         assert isinstance(result.outputs, list)
         assert len(result.outputs) == 3
@@ -197,7 +198,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Explain quantum computing", output_type="string")
+        result = api.it(text="Explain quantum computing", template='{"explanation": ""}', output_type="string")
 
         assert isinstance(result.outputs, str)
         assert "natural language" in result.outputs
@@ -212,7 +213,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Generate a report in markdown", output_type="markdown")
+        result = api.it(text="Generate a report in markdown", template='{"report": ""}', output_type="markdown")
 
         assert "# Report Title" in result.outputs
         assert "## Section" in result.outputs
@@ -227,7 +228,11 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Generate test cases for uppercase function", output_type="test_cases")
+        result = api.it(
+            text="Generate test cases for uppercase function",
+            template='{"test_cases": []}',
+            output_type="test_cases",
+        )
 
         assert isinstance(result.outputs, list)
         assert result.outputs[0]["input"] == "hello"
@@ -250,7 +255,7 @@ class TestInstructAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError):
-            api.it(text="Test instruction")
+            api.it(text="Test instruction", template='{"summary": ""}')
 
     def test_missing_outputs_field_error(self, api):
         """Test that response missing 'outputs' field raises ServerError."""
@@ -263,7 +268,7 @@ class TestInstructAPIMockRequests:
         api.configs.client.request.return_value = mock_response
 
         with pytest.raises(ServerError) as exc_info:
-            api.it(text="Test instruction")
+            api.it(text="Test instruction", template='{"summary": ""}')
 
         assert "missing 'outputs'" in str(exc_info.value)
 
@@ -276,7 +281,7 @@ class TestInstructAPIMockRequests:
         mock_response.headers = {}
         api.configs.client.request.return_value = mock_response
 
-        result = api.it(text="Test instruction")
+        result = api.it(text="Test instruction", template='{"summary": ""}')
 
         assert result.outputs == "Plain text response from the model"
         assert result.parsed is False
@@ -355,7 +360,7 @@ class TestInstructAPIAsyncMockRequests:
 
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
-        result = await api.it_async(text="What is the answer?")
+        result = await api.it_async(text="What is the answer?", template='{"answer": ""}')
 
         assert result.outputs["answer"] == "The answer is 42"
         assert result.parsed is True
