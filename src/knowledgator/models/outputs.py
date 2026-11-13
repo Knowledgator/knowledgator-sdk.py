@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Union, Optional
 
-from pydantic import Field, BaseModel, ConfigDict, constr, confloat, model_validator
+from pydantic import Field, BaseModel, ConfigDict, confloat, model_validator
 
 # --- New Unified Inference Task Outputs ---
 
@@ -144,34 +144,14 @@ def parse_task_output(task_data: Any, task_type: Optional[str] = None) -> Any:
     return BaseTaskOutput.model_validate(task_data)
 
 
-# --- Legacy Output Models (Preserved for compatibility) ---
-
-
-class ComprehendResponse(BaseModel):
-    label: str = Field(..., description="Predicted label")
-    score: float = Field(..., description="Confidence score for the prediction")
-
-
-class EntityResponse(BaseModel):
-    span: str = Field(..., description="Text span of the recognized entity")
-    entity: str = Field(..., description="Recognized entity type")
-    start: int = Field(..., description="Start index of the entity in the text")
-    end: int = Field(..., description="End index of the entity in the text")
-    score: float = Field(..., description="Confidence score for the entity recognition")
+# --- Relation Output Model ---
 
 
 class RelationResponse(BaseModel):
-    source: EntityResponse = Field(..., description="Source entity of the relation")
+    source: SpanEntity = Field(..., description="Source entity of the relation")
     relation: str = Field(..., description="Type of the relation")
-    target: EntityResponse = Field(..., description="Target entity of the relation")
+    target: SpanEntity = Field(..., description="Target entity of the relation")
     score: float = Field(..., description="Confidence score for the relation")
-
-
-class TextSpan(BaseModel):
-    text: constr(min_length=1) = Field(..., description="Text span")
-    start: int = Field(..., description="Start index of the text span")
-    end: int = Field(..., description="End index of the text span")
-    threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off for the text span")
 
 
 # --- Response Containers ---
@@ -306,14 +286,6 @@ class ExtractResults(BaseModel):
         if self.outputs and name in self.outputs:
             return self.outputs[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
-
-
-class ExtractBaseResults(BaseModel):
-    results: List[EntityResponse] = Field(..., description="List of extracted entities")
-    input_text: str = Field(..., description="Original input text")
-    labels: List[str] = Field(..., description="Labels used for classification", min_length=1)
-    threshold: Optional[confloat(ge=0.0, le=1.0)] = Field(default=0.5, description="Score cut-off")
-    status: str = Field(..., description="Status of the classification request")
 
 
 class ExtractRelationsResults(BaseModel):
