@@ -57,7 +57,7 @@ class TestVerification:
         mock_response.json.return_value = {"outputs": {"result": "ok"}}
         api.configs.client.request.return_value = mock_response
 
-        api.it(text="test", adapter_id="my-instruct-model")
+        api.it(text="test", template='{"result": ""}', adapter_id="my-instruct-model")
 
         call_kwargs = api.configs.client.request.call_args.kwargs
         url = call_kwargs["url"]
@@ -76,7 +76,9 @@ class TestVerification:
         mock_response.json.return_value = {"outputs": {"topic": {"type": "classify", "value": "l1"}}}
         api.configs.async_client.request = AsyncMock(return_value=mock_response)
 
-        await api.it_async(text="test", tasks={"topic": {"type": "classify", "labels": ["l1"]}}, adapter_id="async-model")
+        await api.it_async(
+            text="test", tasks={"topic": {"type": "classify", "labels": ["l1"]}}, adapter_id="async-model"
+        )
 
         call_kwargs = api.configs.async_client.request.call_args.kwargs
         url = call_kwargs["url"]

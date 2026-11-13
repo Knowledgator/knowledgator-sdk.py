@@ -13,10 +13,9 @@ from knowledgator.exceptions import (
 from knowledgator.apis.extract import ExtractAPI
 from knowledgator.models.inputs import ExtractBaseRequest, ExtractSummaryRequest, ExtractRelationsRequest
 from knowledgator.models.outputs import (
-    EntityResponse,
-    RelationResponse,
-    ExtractBaseResults,
+    SpanEntity,
     ExtractResults,
+    RelationResponse,
     ExtractSummaryResults,
     ExtractRelationsResults,
 )
@@ -112,30 +111,34 @@ class TestExtractSummaryRequest:
         assert req.threshold == 0.7
 
 
-class TestEntityResponse:
-    """Tests for EntityResponse model."""
+class TestSpanEntity:
+    """Tests for SpanEntity model."""
 
     def test_entity_creation(self):
-        entity = EntityResponse(span="Apple Inc.", entity="organization", start=0, end=10, score=0.95)
+        entity = SpanEntity(text="Apple Inc.", label="organization", start=0, end=10, score=0.95)
         assert entity.span == "Apple Inc."
+        assert entity.text == "Apple Inc."
         assert entity.entity == "organization"
+        assert entity.label == "organization"
         assert entity.start == 0
         assert entity.end == 10
         assert entity.score == 0.95
 
-    def test_entity_from_dict(self):
+    def test_entity_from_dict_legacy_keys(self):
         data = {"span": "California", "entity": "location", "start": 20, "end": 30, "score": 0.88}
-        entity = EntityResponse.model_validate(data)
+        entity = SpanEntity.model_validate(data)
         assert entity.span == "California"
+        assert entity.text == "California"
         assert entity.entity == "location"
+        assert entity.label == "location"
 
 
 class TestRelationResponse:
     """Tests for RelationResponse model."""
 
     def test_relation_creation(self):
-        source = EntityResponse(span="Steve Jobs", entity="person", start=0, end=10, score=0.95)
-        target = EntityResponse(span="Apple Inc.", entity="organization", start=20, end=30, score=0.92)
+        source = SpanEntity(text="Steve Jobs", label="person", start=0, end=10, score=0.95)
+        target = SpanEntity(text="Apple Inc.", label="organization", start=20, end=30, score=0.92)
         relation = RelationResponse(source=source, relation="founded_by", target=target, score=0.89)
         assert relation.source.span == "Steve Jobs"
         assert relation.relation == "founded_by"

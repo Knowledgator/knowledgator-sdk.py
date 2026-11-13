@@ -4,17 +4,16 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from knowledgator.models import (
+    ComprehendRequest,
+    ComprehendResults,
+    ClassifyTaskOutput,
+)
 from knowledgator.configs import SDKConfigs, ServersConfigs
 from knowledgator.exceptions import (
     ServerError,
     TransportTimeout,
     ConnectionFailure,
-)
-from knowledgator.models import (
-    ClassificationExample,
-    ComprehendRequest,
-    ComprehendResponse,
-    ComprehendResults,
 )
 from knowledgator.apis.comprehend import ComprehendAPI
 
@@ -62,50 +61,36 @@ class TestComprehendRequest:
             ComprehendRequest(input="Test")
 
 
-class TestComprehendResponse:
-    """Tests for ComprehendResponse model."""
-
-    def test_response_creation(self):
-        resp = ComprehendResponse(label="positive", score=0.95)
-        assert resp.label == "positive"
-        assert resp.score == 0.95
-
-    def test_response_from_dict(self):
-        data = {"label": "negative", "score": 0.12}
-        resp = ComprehendResponse.model_validate(data)
-        assert resp.label == "negative"
-        assert resp.score == 0.12
-
-
 class TestComprehendResults:
     """Tests for ComprehendResults model."""
 
     def test_results_creation(self):
-        results = [ComprehendResponse(label="positive", score=0.92), ComprehendResponse(label="neutral", score=0.65)]
+        outputs = {
+            "topic": ClassifyTaskOutput(value="positive", scores={"positive": 0.92, "neutral": 0.65}),
+        }
         comprehend_results = ComprehendResults(
-            results=results,
+            results=outputs,
             input_text="This is great!",
-            tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}},
             threshold=0.5,
             status="ok",
         )
-        assert len(comprehend_results.results) == 2
+        assert "topic" in comprehend_results.results
+        assert comprehend_results.results["topic"].value == "positive"
         assert comprehend_results.input_text == "This is great!"
         assert comprehend_results.threshold == 0.5
         assert comprehend_results.status == "ok"
 
-    def test_results_filtering_by_threshold(self):
-        """Test that results above threshold are included."""
-        results = [
-            ComprehendResponse(label="positive", score=0.92),
-            ComprehendResponse(label="neutral", score=0.45),
-            ComprehendResponse(label="negative", score=0.15),
-        ]
+    def test_results_access_via_getattr_and_getitem(self):
         comprehend_results = ComprehendResults(
-            results=results, input_text="Test", tasks={"topic": {"type": "classify", "labels": ["positive", "negative", "neutral"]}}, threshold=0.5, status="ok"
+            {
+                "outputs": {
+                    "topic": {"type": "classify", "value": "tech", "scores": {"tech": 0.9}},
+                }
+            }
         )
-        # Note: filtering is done by the API, not the model
-        assert len(comprehend_results.results) == 3
+        assert comprehend_results.topic.value == "tech"
+        assert comprehend_results["topic"].value == "tech"
+        assert "topic" in comprehend_results
 
 
 class TestComprehendAPISync:

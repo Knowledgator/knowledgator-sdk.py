@@ -2,12 +2,13 @@
 Unit tests verifying model_id routing headers for Comprehend, Extract, and Instruct APIs.
 """
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from knowledgator.configs import SDKConfigs, ServersConfigs
-from knowledgator.apis.comprehend import ComprehendAPI
 from knowledgator.apis.extract import ExtractAPI
 from knowledgator.apis.instruct import InstructAPI
+from knowledgator.apis.comprehend import ComprehendAPI
 from knowledgator.utils.dictionaries_op import get_model_id_header
 
 
@@ -147,6 +148,7 @@ class TestInferenceModelIdRouting:
 
         res = api.it(
             text="Extract entities from this text",
+            template='{"entities": []}',
             adapter_id="custom-instruct-42",
         )
         assert res is not None
@@ -167,6 +169,7 @@ class TestInferenceModelIdRouting:
 
         res = await api.it_async(
             text="Extract entities from this text",
+            template='{"entities": []}',
             adapter_id="custom-instruct-42",
         )
         assert res is not None
