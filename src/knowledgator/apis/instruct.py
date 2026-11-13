@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Union, Mapping, Optional
 from dataclasses import dataclass
 
 import httpx
@@ -54,7 +54,7 @@ class InstructAPI(BaseAPI):
     def it(
         self,
         text: str,
-        template: Optional[str] = None,
+        template: Union[str, Dict[str, Any]],
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
         adapter_id: Optional[str] = None,
@@ -68,7 +68,7 @@ class InstructAPI(BaseAPI):
 
         Args:
             text: The main instruction/prompt for the model (required).
-            template: JSON string representing a structure the model should fill.
+            template: JSON string or dictionary representing a structure the model should fill (required).
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
             adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
@@ -89,20 +89,20 @@ class InstructAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error or invalid response.
         """
-        # Validate template JSON if provided
-        if template is not None:
+        # Validate template JSON if string, or serialize if dict
+        if isinstance(template, dict):
+            template_str = json.dumps(template)
+        else:
             try:
                 json.loads(template)
+                template_str = template
             except json.JSONDecodeError as exc:
                 raise BadRequest(
                     f"Invalid JSON in template: {exc}", payload={"template": template}
                 ) from exc
 
         # Build form data payload
-        data_payload = {"text": text}
-
-        if template is not None:
-            data_payload["template"] = template
+        data_payload = {"text": text, "template": template_str}
 
         if output_type is not None:
             data_payload["output_type"] = output_type
@@ -187,7 +187,7 @@ class InstructAPI(BaseAPI):
     async def it_async(
         self,
         text: str,
-        template: Optional[str] = None,
+        template: Union[str, Dict[str, Any]],
         files: Optional[List[FileMetadata]] = None,
         output_type: Optional[str] = None,
         adapter_id: Optional[str] = None,
@@ -201,7 +201,7 @@ class InstructAPI(BaseAPI):
 
         Args:
             text: The main instruction/prompt for the model (required).
-            template: JSON string representing a structure the model should fill.
+            template: JSON string or dictionary representing a structure the model should fill (required).
             files: List of FileMetadata with file references/content.
             output_type: Hint for desired output style (json, string, list, markdown, etc.).
             adapter_id: Optional LoRA adapter ID for fine-tuned adapters (attaches KnowledgatorAPI-Model-ID header).
@@ -222,20 +222,20 @@ class InstructAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error or invalid response.
         """
-        # Validate template JSON if provided
-        if template is not None:
+        # Validate template JSON if string, or serialize if dict
+        if isinstance(template, dict):
+            template_str = json.dumps(template)
+        else:
             try:
                 json.loads(template)
+                template_str = template
             except json.JSONDecodeError as exc:
                 raise BadRequest(
                     f"Invalid JSON in template: {exc}", payload={"template": template}
                 ) from exc
 
         # Build form data payload
-        data_payload = {"text": text}
-
-        if template is not None:
-            data_payload["template"] = template
+        data_payload = {"text": text, "template": template_str}
 
         if output_type is not None:
             data_payload["output_type"] = output_type
