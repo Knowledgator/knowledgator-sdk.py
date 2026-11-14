@@ -27,7 +27,6 @@ def get_model_id_header(model_id: Any = None) -> Dict[str, str]:
     if model_id is not None:
         return {
             "KnowledgatorAPI-Model-ID": str(model_id),
-            "X-Model-Id": str(model_id),
         }
     return {}
 
