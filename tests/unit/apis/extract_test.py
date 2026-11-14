@@ -341,10 +341,10 @@ class TestExtractAPIRelations:
         )
 
         assert isinstance(result, ExtractRelationsResults)
-        assert len(result.results) == 1
-        assert result.results[0].relation == "founded_by"
-        assert result.results[0].source.span == "Steve Jobs"
-        assert result.results[0].target.span == "Apple Inc."
+        assert len(result.outputs) == 1
+        assert result.outputs[0].relation == "founded_by"
+        assert result.outputs[0].source.span == "Steve Jobs"
+        assert result.outputs[0].target.span == "Apple Inc."
 
     def test_relation_extraction_with_rules(self, extract_api):
         """Test relation extraction with filtering rules."""
@@ -369,8 +369,8 @@ class TestExtractAPIRelations:
             text="John works for Microsoft", entities=["person", "organization"], relations=["works_for"], rules=rules
         )
 
-        assert len(result.results) == 1
-        assert result.results[0].relation == "works_for"
+        assert len(result.outputs) == 1
+        assert result.outputs[0].relation == "works_for"
 
 
 class TestExtractAPISummary:
@@ -472,8 +472,8 @@ class TestExtractAPIAsync:
                 text="Alice works for IBM", entities=["person", "organization"], relations=["works_for"]
             )
 
-            assert len(result.results) == 1
-            assert result.results[0].relation == "works_for"
+            assert len(result.outputs) == 1
+            assert result.outputs[0].relation == "works_for"
 
     @pytest.mark.asyncio
     async def test_async_summary(self, extract_api):

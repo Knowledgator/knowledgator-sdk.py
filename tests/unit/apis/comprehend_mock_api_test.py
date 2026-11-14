@@ -72,7 +72,7 @@ class TestComprehendAPIMockRequests:
             assert payload.get("labels") == ["positive", "negative", "neutral"]
 
         # Verify response
-        assert "topic" in result.results
+        assert "topic" in result.outputs
         assert result.topic.value == ["positive", "neutral"]
         assert result.topic.scores["positive"] == 0.8734
         assert result.topic.scores["neutral"] == 0.5123

@@ -182,22 +182,11 @@ class TestEndpointTaskRestrictions:
 # =========================================================================
 
 class TestUnifiedHelper:
-    """Tests for get_inference_tasks handling 'outputs', 'results', or root."""
+    """Tests for get_inference_tasks handling 'outputs' or root."""
 
     def test_extracts_from_outputs(self):
         payload = {"outputs": {"topic": {"value": "space"}}}
         assert get_inference_tasks(payload) == {"topic": {"value": "space"}}
-
-    def test_extracts_from_results(self):
-        payload = {"results": {"topic": {"value": "space"}}}
-        assert get_inference_tasks(payload) == {"topic": {"value": "space"}}
-
-    def test_prefers_outputs_over_results_if_both_present(self):
-        payload = {
-            "outputs": {"task": "from_outputs"},
-            "results": {"task": "from_results"},
-        }
-        assert get_inference_tasks(payload) == {"task": "from_outputs"}
 
     def test_fallback_to_raw(self):
         payload = {"topic": {"value": "space"}}
@@ -322,12 +311,11 @@ class TestOutputModelParsing:
         assert results.topic.value == "space"
         assert results.is_scientific.value is True
 
-        # .outputs / .results properties
+        # .outputs property
         assert "topic" in results.outputs
-        assert "topic" in results.results
         assert results.usage == {"total_tokens": 42}
 
-    def test_extract_results_dual_access(self):
+    def test_extract_results_access(self):
         raw_response = {
             "outputs": {
                 "entities": {

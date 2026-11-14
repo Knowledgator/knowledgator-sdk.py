@@ -342,10 +342,10 @@ class TestExtractRelationAPIMockRequests:
         assert payload.get("input") == "Steve Jobs founded Apple Inc." or payload.get("text") == "Steve Jobs founded Apple Inc."
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].relation == "founded_by"
-        assert result.results[0].source.span == "Steve Jobs"
-        assert result.results[0].target.span == "Apple Inc."
+        assert len(result.outputs) == 1
+        assert result.outputs[0].relation == "founded_by"
+        assert result.outputs[0].source.span == "Steve Jobs"
+        assert result.outputs[0].target.span == "Apple Inc."
 
     def test_relation_extraction_with_rules(self, api):
         """Test relation extraction with filtering rules."""
@@ -380,8 +380,8 @@ class TestExtractRelationAPIMockRequests:
         assert payload.get("input") == "Alice works for Google" or payload.get("text") == "Alice works for Google"
 
         # Verify response
-        assert len(result.results) == 1
-        assert result.results[0].relation == "works_for"
+        assert len(result.outputs) == 1
+        assert result.outputs[0].relation == "works_for"
 
     def test_multiple_relations_extracted(self, api):
         """Test extraction of multiple relations."""
@@ -412,9 +412,9 @@ class TestExtractRelationAPIMockRequests:
             relations=["works_for", "located_in"],
         )
 
-        assert len(result.results) == 2
-        assert result.results[0].relation == "works_for"
-        assert result.results[1].relation == "located_in"
+        assert len(result.outputs) == 2
+        assert result.outputs[0].relation == "works_for"
+        assert result.outputs[1].relation == "located_in"
 
     def test_relation_with_prompt(self, api):
         """Test relation extraction with prompt."""
@@ -446,7 +446,7 @@ class TestExtractRelationAPIMockRequests:
         p = payload.get("prompt") or payload.get("tasks", {}).get("relations", {}).get("instruction")
         assert p == "Extract business acquisition relationships"
 
-        assert len(result.results) == 1
+        assert len(result.outputs) == 1
 
 
 class TestExtractSummaryAPIMockRequests:
@@ -621,8 +621,8 @@ class TestExtractAPIAsyncMockRequests:
                 text="Bob works for Apple", entities=["person", "organization"], relations=["works_for"]
             )
 
-            assert len(result.results) == 1
-            assert result.results[0].relation == "works_for"
+            assert len(result.outputs) == 1
+            assert result.outputs[0].relation == "works_for"
 
     @pytest.mark.asyncio
     async def test_async_summarization(self, api):

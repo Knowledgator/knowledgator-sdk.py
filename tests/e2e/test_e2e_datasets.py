@@ -4,7 +4,7 @@ import pytest
 def test_e2e_list_datasets(sync_sdk_client):
     res = sync_sdk_client.datasets.list(limit=10)
     assert res is not None
-    assert hasattr(res, "datasets") or hasattr(res, "results") or isinstance(res, dict) or isinstance(res, list)
+    assert hasattr(res, "datasets") or isinstance(res, dict) or isinstance(res, list)
 
 
 def test_e2e_list_formats(sync_sdk_client):

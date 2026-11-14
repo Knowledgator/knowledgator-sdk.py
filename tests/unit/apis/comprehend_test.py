@@ -69,13 +69,13 @@ class TestComprehendResults:
             "topic": ClassifyTaskOutput(value="positive", scores={"positive": 0.92, "neutral": 0.65}),
         }
         comprehend_results = ComprehendResults(
-            results=outputs,
+            outputs=outputs,
             input_text="This is great!",
             threshold=0.5,
             status="ok",
         )
-        assert "topic" in comprehend_results.results
-        assert comprehend_results.results["topic"].value == "positive"
+        assert "topic" in comprehend_results.outputs
+        assert comprehend_results.outputs["topic"].value == "positive"
         assert comprehend_results.input_text == "This is great!"
         assert comprehend_results.threshold == 0.5
         assert comprehend_results.status == "ok"

@@ -16,11 +16,10 @@ def test_get_model_id_header_utility():
     # When model_id is None, returns empty dict
     assert get_model_id_header(None) == {}
 
-    # When model_id is given, returns both KnowledgatorAPI-Model-ID and X-Model-Id
+    # When model_id is given, returns KnowledgatorAPI-Model-ID
     headers = get_model_id_header("custom-model-v1")
     assert headers == {
         "KnowledgatorAPI-Model-ID": "custom-model-v1",
-        "X-Model-Id": "custom-model-v1",
     }
 
 
@@ -56,7 +55,6 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "finetuned-comprehend-99"
-        assert headers.get("X-Model-Id") == "finetuned-comprehend-99"
 
     @pytest.mark.asyncio
     async def test_comprehend_it_async_attaches_adapter_id_headers(self, sdk_configs):
@@ -81,7 +79,6 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.async_client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "finetuned-comprehend-99"
-        assert headers.get("X-Model-Id") == "finetuned-comprehend-99"
 
     def test_extract_it_sync_attaches_adapter_id_headers(self, sdk_configs):
         api = ExtractAPI(sdk_configs)
@@ -108,7 +105,6 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "gliclass-adapter"
-        assert headers.get("X-Model-Id") == "gliclass-adapter"
 
     @pytest.mark.asyncio
     async def test_extract_it_async_attaches_adapter_id_headers(self, sdk_configs):
@@ -136,7 +132,6 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.async_client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "gliclass-adapter"
-        assert headers.get("X-Model-Id") == "gliclass-adapter"
 
     def test_instruct_it_sync_attaches_adapter_id_headers(self, sdk_configs):
         api = InstructAPI(sdk_configs)
@@ -156,7 +151,6 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "custom-instruct-42"
-        assert headers.get("X-Model-Id") == "custom-instruct-42"
 
     @pytest.mark.asyncio
     async def test_instruct_it_async_attaches_adapter_id_headers(self, sdk_configs):
@@ -177,6 +171,5 @@ class TestInferenceModelIdRouting:
         call_kwargs = sdk_configs.async_client.request.call_args.kwargs
         headers = call_kwargs.get("headers", {})
         assert headers.get("KnowledgatorAPI-Model-ID") == "custom-instruct-42"
-        assert headers.get("X-Model-Id") == "custom-instruct-42"
 
 
