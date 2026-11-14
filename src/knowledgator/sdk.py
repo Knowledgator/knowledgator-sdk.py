@@ -207,10 +207,6 @@ class Knowledgator(BaseKnowledgator):
         base_headers: Dict[str, str] = {}
         if api_key:
             base_headers["KnowledgatorAPI-Key"] = api_key
-            if not api_key.startswith("Bearer "):
-                base_headers["Authorization"] = f"Bearer {api_key}"
-            else:
-                base_headers["Authorization"] = api_key
         if servers_configs.base_headers:
             base_headers.update(servers_configs.base_headers.get(server_alias, {}))
         return base_headers
