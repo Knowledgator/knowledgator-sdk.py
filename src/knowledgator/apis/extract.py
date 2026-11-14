@@ -74,7 +74,7 @@ class ExtractAPI(BaseAPI):
             ) from exc
 
         return ExtractRelationsResults(
-            results=relations,
+            outputs=relations,
             input_text=raw.get("input_text", text_fallback),
             entities=raw.get("entities", entities_fallback),
             relations=raw.get("relations", relations_fallback),
@@ -119,8 +119,8 @@ class ExtractAPI(BaseAPI):
         target_input: Any,
         tasks: Optional[Dict[str, Any]] = None,
     ) -> ExtractResults:
-        """Parse extract response supporting both new task dict and legacy list format."""
-        if "outputs" not in raw and "results" not in raw:
+        """Parse extract response supporting task dict format."""
+        if "outputs" not in raw:
             raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
 
         tasks_raw = get_inference_tasks(raw)
@@ -144,7 +144,6 @@ class ExtractAPI(BaseAPI):
         if isinstance(tasks_raw, dict):
             parsed_tasks = {k: parse_task_output(v, "span") for k, v in tasks_raw.items()}
             return ExtractResults(
-                results=parsed_tasks,
                 outputs=parsed_tasks,
                 raw=raw,
                 input_text=str(target_input) if target_input is not None else "",
@@ -152,7 +151,7 @@ class ExtractAPI(BaseAPI):
                 threshold=task_threshold,
                 status="ok",
             )
-        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'", payload={"raw": raw})
+        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'", payload={"raw": raw})
 
     def _build_extract_request_body(
         self,
@@ -430,7 +429,7 @@ class ExtractAPI(BaseAPI):
         if isinstance(tasks_raw, dict):
             parsed_tasks = {k: parse_task_output(v, "relation") for k, v in tasks_raw.items()}
             return ExtractResults(
-                results=parsed_tasks,
+                outputs=parsed_tasks,
                 raw=raw,
                 input_text=text,
                 threshold=threshold,

@@ -160,13 +160,12 @@ class RelationResponse(BaseModel):
 class ComprehendResults(BaseModel):
     """Result container for Comprehend API.
 
-    Supports both new task-keyed outputs and legacy output lists.
+    Supports task-keyed outputs.
     """
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    results: Any = Field(default_factory=dict, description="Task results or legacy classification outputs")
-    outputs: Optional[Dict[str, Any]] = Field(default=None, description="Task results dictionary")
+    outputs: Dict[str, Any] = Field(default_factory=dict, description="Task results dictionary")
     input_text: Optional[str] = Field(default=None, description="Original input text")
     labels: Optional[List[str]] = Field(default=None, description="Labels used for classification")
     threshold: Optional[float] = Field(default=None, description="Score cut-off")
@@ -183,7 +182,6 @@ class ComprehendResults(BaseModel):
             if isinstance(tasks_raw, dict):
                 parsed = {k: parse_task_output(v) for k, v in tasks_raw.items()}
                 data = {
-                    "results": parsed,
                     "outputs": parsed,
                     "raw": raw,
                     "usage": raw.get("usage"),
@@ -191,34 +189,22 @@ class ComprehendResults(BaseModel):
                 }
             else:
                 raise ValueError(
-                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'"
+                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'"
                 )
         super().__init__(**data)
 
-    def model_post_init(self, __context: Any) -> None:
-        if self.outputs is None and isinstance(self.results, dict):
-            self.outputs = self.results
-        elif self.outputs is not None and (not self.results or self.results == {}):
-            self.results = self.outputs
-
     def __getitem__(self, key: str) -> Any:
-        if isinstance(self.results, dict) and key in self.results:
-            return self.results[key]
-        if self.outputs and key in self.outputs:
+        if isinstance(self.outputs, dict) and key in self.outputs:
             return self.outputs[key]
         raise KeyError(key)
 
     def __contains__(self, key: str) -> bool:
-        if isinstance(self.results, dict):
-            return key in self.results
-        if self.outputs:
+        if isinstance(self.outputs, dict):
             return key in self.outputs
         return False
 
     def __getattr__(self, name: str) -> Any:
-        if isinstance(self.results, dict) and name in self.results:
-            return self.results[name]
-        if self.outputs and name in self.outputs:
+        if isinstance(self.outputs, dict) and name in self.outputs:
             return self.outputs[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
@@ -231,8 +217,7 @@ class ExtractResults(BaseModel):
 
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-    results: Any = Field(default_factory=dict, description="Task results dictionary")
-    outputs: Optional[Dict[str, Any]] = Field(default=None, description="Task results dictionary")
+    outputs: Dict[str, Any] = Field(default_factory=dict, description="Task results dictionary")
     input_text: Optional[str] = Field(default=None, description="Original input text")
     threshold: Optional[float] = Field(default=None, description="Score cut-off")
     status: str = Field(default="ok", description="Status of the extraction request")
@@ -248,7 +233,6 @@ class ExtractResults(BaseModel):
             if isinstance(tasks_raw, dict):
                 parsed = {k: parse_task_output(v) for k, v in tasks_raw.items()}
                 data = {
-                    "results": parsed,
                     "outputs": parsed,
                     "raw": raw,
                     "usage": raw.get("usage"),
@@ -256,40 +240,28 @@ class ExtractResults(BaseModel):
                 }
             else:
                 raise ValueError(
-                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'"
+                    "Unexpected response shape: expected task-keyed dictionary in 'outputs'"
                 )
         super().__init__(**data)
 
-    def model_post_init(self, __context: Any) -> None:
-        if self.outputs is None and isinstance(self.results, dict):
-            self.outputs = self.results
-        elif self.outputs is not None and (not self.results or self.results == {}):
-            self.results = self.outputs
-
     def __getitem__(self, key: str) -> Any:
-        if isinstance(self.results, dict) and key in self.results:
-            return self.results[key]
-        if self.outputs and key in self.outputs:
+        if isinstance(self.outputs, dict) and key in self.outputs:
             return self.outputs[key]
         raise KeyError(key)
 
     def __contains__(self, key: str) -> bool:
-        if isinstance(self.results, dict):
-            return key in self.results
-        if self.outputs:
+        if isinstance(self.outputs, dict):
             return key in self.outputs
         return False
 
     def __getattr__(self, name: str) -> Any:
-        if isinstance(self.results, dict) and name in self.results:
-            return self.results[name]
-        if self.outputs and name in self.outputs:
+        if isinstance(self.outputs, dict) and name in self.outputs:
             return self.outputs[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
 
 class ExtractRelationsResults(BaseModel):
-    results: List[RelationResponse] = Field(..., description="List of extracted relations")
+    outputs: List[RelationResponse] = Field(..., description="List of extracted relations")
     input_text: str = Field(..., description="Original input text")
     entities: List[str] = Field(..., description="Entities used for relation extraction", min_length=1)
     relations: List[str] = Field(..., description="Relations used for extraction", min_length=1)

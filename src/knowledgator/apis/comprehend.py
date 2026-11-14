@@ -82,7 +82,7 @@ class ComprehendAPI(BaseAPI):
         tasks: Optional[Dict[str, Any]] = None,
     ) -> ComprehendResults:
         """Parse raw response using get_inference_tasks helper."""
-        if "outputs" not in raw and "results" not in raw:
+        if "outputs" not in raw:
             raise ServerError("Unexpected response shape (missing 'outputs')", payload={"raw": raw})
 
         tasks_raw = get_inference_tasks(raw)
@@ -100,7 +100,6 @@ class ComprehendAPI(BaseAPI):
         if isinstance(tasks_raw, dict):
             parsed_tasks = {k: parse_task_output(v, "classify") for k, v in tasks_raw.items()}
             return ComprehendResults(
-                results=parsed_tasks,
                 outputs=parsed_tasks,
                 raw=raw,
                 input_text=str(target_input) if target_input is not None else "",
@@ -108,7 +107,7 @@ class ComprehendAPI(BaseAPI):
                 threshold=task_threshold,
                 status="ok",
             )
-        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'/'results'", payload={"raw": raw})
+        raise ServerError("Unexpected response shape: expected task-keyed dictionary in 'outputs'", payload={"raw": raw})
 
     def it(
         self,

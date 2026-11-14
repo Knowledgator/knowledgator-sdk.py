@@ -33,10 +33,8 @@ def get_model_id_header(model_id: Any = None) -> Dict[str, str]:
 
 
 def get_inference_tasks(raw: Dict[str, Any]) -> Any:
-    """Extract tasks dictionary from response payload (supporting 'outputs', 'results', or raw dict)."""
+    """Extract tasks dictionary from response payload (supporting 'outputs' or raw dict)."""
     if "outputs" in raw:
         return raw["outputs"]
-    if "results" in raw:
-        return raw["results"]
     return raw
 
