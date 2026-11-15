@@ -215,3 +215,186 @@ class TestFinetuningAPIMockRequests:
                 "dataset_id": "6babd48a-2256-4466-b16b-9fd45ba59688",
             },
         }
+
+    def test_list_models_with_filters(self, api):
+        """Test listing models with full model and adapter filters."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "total": 1,
+            "data": [
+                {
+                    "id": "gliclass-v4-2b",
+                    "name": "gliclass-v4-2b",
+                    "type": "GLiClass",
+                    "fine_tuned": False,
+                    "inference": "open-models",
+                    "training": {"model": False, "adapter": False},
+                }
+            ],
+            "offset": 0,
+            "limit": 20,
+        }
+        api.configs.client.request.return_value = mock_response
+
+        res = api.list_models(
+            offset=0,
+            limit=20,
+            object_type="model",
+            trainable="model",
+            inference="open-models",
+            type="GLiClass",
+            name="gliclass",
+        )
+
+        assert res.total == 1
+        assert len(res.models) == 1
+        assert res.models[0].id == "gliclass-v4-2b"
+        assert res.models[0].type == "GLiClass"
+        assert res.models[0].inference == "open-models"
+
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/models/"
+        assert str(kwargs["url"]) == "https://api.knowledgator.com/models/?offset=0&limit=20&object_type=model&trainable=model&inference=open-models&type=GLiClass&name=gliclass"
+
+    @pytest.mark.asyncio
+    async def test_list_models_async_with_filters(self, api):
+        """Test async listing models with adapter filters."""
+        from unittest.mock import AsyncMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "total": 1,
+            "data": [
+                {
+                    "id": "adapter-1",
+                    "name": "adapter-1",
+                    "type": "GLiClass",
+                    "fine_tuned": True,
+                    "parent_model": "gliclass-v4-2b",
+                    "inference": "comprehend-it",
+                    "training": {"model": False, "adapter": True},
+                }
+            ],
+            "offset": 0,
+            "limit": 10,
+        }
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.list_models_async(
+            offset=0,
+            limit=10,
+            object_type="adapter",
+            trainable="adapter",
+            inference="comprehend-it",
+        )
+
+        assert res.total == 1
+        assert len(res.models) == 1
+        assert res.models[0].id == "adapter-1"
+        assert res.models[0].fine_tuned is True
+        assert res.models[0].parent_model == "gliclass-v4-2b"
+
+        _args, kwargs = api.configs.async_client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/models/"
+        assert str(kwargs["url"]) == "https://api.knowledgator.com/models/?offset=0&limit=10&object_type=adapter&trainable=adapter&inference=comprehend-it"
+
+    def test_get_model_endpoint(self, api):
+        """Test get_model calls /models/{id} as public endpoint with no auth header."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "model-abc",
+            "name": "model-abc",
+            "description": "Full model description markdown",
+            "type": "GLiClass",
+        }
+        api.configs.client.request.return_value = mock_response
+
+        res = api.get_model("model-abc")
+
+        assert res.id == "model-abc"
+        assert res.name == "model-abc"
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/models/model-abc/"
+        assert "Authorization" not in kwargs["headers"]
+        assert "KnowledgatorAPI-Key" not in kwargs["headers"]
+
+    @pytest.mark.asyncio
+    async def test_get_model_async_endpoint(self, api):
+        """Test async get_model_async calls /models/{id} as public endpoint with no auth header."""
+        from unittest.mock import AsyncMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "id": "model-xyz",
+            "name": "model-xyz",
+            "description": "Full markdown",
+            "type": "GLiClass",
+        }
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.get_model_async("model-xyz")
+
+        assert res.id == "model-xyz"
+        _args, kwargs = api.configs.async_client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/models/model-xyz/"
+        assert "Authorization" not in kwargs["headers"]
+        assert "KnowledgatorAPI-Key" not in kwargs["headers"]
+
+    def test_list_trainings_with_type(self, api):
+        """Test listing trainings with type query parameter."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "trainings": [
+                {"id": "tr-1", "type": "comprehend-it", "status": "completed"}
+            ],
+            "total": 1,
+            "offset": 0,
+            "limit": 20,
+        }
+        api.configs.client.request.return_value = mock_response
+
+        res = api.list_trainings(status="completed", type="comprehend-it", limit=20)
+
+        assert res.total == 1
+        assert len(res.trainings) == 1
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert "/trainings" in str(kwargs["url"])
+        assert "type=comprehend-it" in str(kwargs["url"])
+        assert "status=completed" in str(kwargs["url"])
+
+    @pytest.mark.asyncio
+    async def test_list_trainings_async_with_type(self, api):
+        """Test async listing trainings with type query parameter."""
+        from unittest.mock import AsyncMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "trainings": [
+                {"id": "tr-2", "type": "extract-it", "status": "completed"}
+            ],
+            "total": 1,
+            "offset": 0,
+            "limit": 10,
+        }
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.list_trainings_async(status="completed", type="extract-it", limit=10)
+
+        assert res.total == 1
+        assert len(res.trainings) == 1
+        _args, kwargs = api.configs.async_client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert "/trainings" in str(kwargs["url"])
+        assert "type=extract-it" in str(kwargs["url"])
+        assert "status=completed" in str(kwargs["url"])
