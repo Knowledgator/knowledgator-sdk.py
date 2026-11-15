@@ -28,8 +28,8 @@ class FinetuningEndpointsConfig(EndpointsConfig):
 
     # Model Management
     create_model: str = "models/"
-    list_models: str = "models/"
-    get_model: str = "models/{model_id}/"
+    list_models: str = "/models/"
+    get_model: str = "/models/{model_id}/"
     list_model_types: str = "models/types/"
 
     # Training Management
@@ -141,18 +141,26 @@ class FinetuningAPI(BaseAPI):
         self,
         offset: int = 0,
         limit: int = 100,
+        object_type: Optional[str] = None,
+        trainable: Optional[str] = None,
+        inference: Optional[str] = None,
         type: Optional[str] = None,
+        name: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ListModelsResponse:
         """
-        List available base models with optional filtering.
+        List available models and adapters with optional filtering.
 
         Args:
             offset: Pagination offset (default: 0).
             limit: Maximum number of results (default: 100, max: 10000).
-            type: Filter by service type (ner, text-classification, relation-extraction).
+            object_type: Filter by object type ('adapter' for LoRA adapters, 'model' for full models).
+            trainable: Filter by trainable capability ('adapter' for models supporting adapter training, 'model' for full model training).
+            inference: Filter by inference service ('open-models', 'comprehend-it', 'extract-it', 'instruct-it').
+            type: Filter by model architecture or service type (e.g., 'GLiClass', 'GLiFormer').
+            name: Filter by model name.
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
@@ -165,17 +173,33 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        query_params = {"offset": offset, "limit": limit}
+        query_params: dict[str, Any] = {"offset": offset, "limit": limit}
+        if object_type is not None:
+            query_params["object_type"] = object_type
+        if trainable is not None:
+            query_params["trainable"] = trainable
+        if inference is not None:
+            query_params["inference"] = inference
         if type is not None:
             query_params["type"] = type
+        if name is not None:
+            query_params["name"] = name
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_models}".rstrip("/")
+        endpoint_path = self.ENDPOINTS_CONFIG.list_models
+        if endpoint_path.startswith("/"):
+            path = endpoint_path
+        else:
+            path = f"{self.PATH}{endpoint_path}".rstrip("/")
+
+        req_headers: dict[str, Optional[str]] = dict(http_headers or {})
+        req_headers["KnowledgatorAPI-Key"] = None
+
         request = self._make_request(
             method="GET",
             path=path,
             url_override=server_url,
             query_params=query_params,
-            headers=http_headers,
+            headers=req_headers,
             accept="application/json",
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -235,12 +259,20 @@ class FinetuningAPI(BaseAPI):
             ConnectionFailure: If there's a transport error.
             ServerError: If the server returns an error.
         """
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(model_id=model_id).rstrip("/")
+        endpoint_path = self.ENDPOINTS_CONFIG.get_model.format(model_id=model_id)
+        if endpoint_path.startswith("/"):
+            path = endpoint_path
+        else:
+            path = f"{self.PATH}{endpoint_path}".rstrip("/")
+
+        req_headers: dict[str, Optional[str]] = dict(http_headers or {})
+        req_headers["KnowledgatorAPI-Key"] = None
+
         request = self._make_request(
             method="GET",
             path=path,
             url_override=server_url,
-            headers=http_headers,
+            headers=req_headers,
             accept="application/json",
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -437,6 +469,7 @@ class FinetuningAPI(BaseAPI):
         model_id: Optional[str] = None,
         dataset_id: Optional[str] = None,
         status: Optional[str] = None,
+        type: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -450,6 +483,7 @@ class FinetuningAPI(BaseAPI):
             model_id: Filter by base model ID.
             dataset_id: Filter by dataset ID.
             status: Filter by training status (pending, running, successful, failed, stopped).
+            type: Filter by service type (comprehend-it, extract-it, instruct-it).
             server_url: Optional server URL override.
             timeout_ms: Optional timeout in milliseconds.
             http_headers: Optional additional HTTP headers.
@@ -469,8 +503,12 @@ class FinetuningAPI(BaseAPI):
             query_params["dataset_id"] = dataset_id
         if status is not None:
             query_params["status"] = status
+        if type is not None:
+            query_params["type"] = type
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_trainings}".rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_trainings}"
+        if not path.endswith("/"):
+            path += "/"
         request = self._make_request(
             method="GET",
             path=path,
@@ -906,23 +944,43 @@ class FinetuningAPI(BaseAPI):
         self,
         offset: int = 0,
         limit: int = 100,
+        object_type: Optional[str] = None,
+        trainable: Optional[str] = None,
+        inference: Optional[str] = None,
         type: Optional[str] = None,
+        name: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> ListModelsResponse:
         """Async version of list_models()."""
-        query_params = {"offset": offset, "limit": limit}
+        query_params: dict[str, Any] = {"offset": offset, "limit": limit}
+        if object_type is not None:
+            query_params["object_type"] = object_type
+        if trainable is not None:
+            query_params["trainable"] = trainable
+        if inference is not None:
+            query_params["inference"] = inference
         if type is not None:
             query_params["type"] = type
+        if name is not None:
+            query_params["name"] = name
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_models}".rstrip("/")
+        endpoint_path = self.ENDPOINTS_CONFIG.list_models
+        if endpoint_path.startswith("/"):
+            path = endpoint_path
+        else:
+            path = f"{self.PATH}{endpoint_path}".rstrip("/")
+
+        req_headers: dict[str, Optional[str]] = dict(http_headers or {})
+        req_headers["KnowledgatorAPI-Key"] = None
+
         request = self._make_request(
             method="GET",
             path=path,
             url_override=server_url,
             query_params=query_params,
-            headers=http_headers,
+            headers=req_headers,
             accept="application/json",
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -969,12 +1027,20 @@ class FinetuningAPI(BaseAPI):
         http_headers: Optional[Mapping[str, str]] = None,
     ) -> TrainingModel:
         """Async version of get_model()."""
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_model}".format(model_id=model_id).rstrip("/")
+        endpoint_path = self.ENDPOINTS_CONFIG.get_model.format(model_id=model_id)
+        if endpoint_path.startswith("/"):
+            path = endpoint_path
+        else:
+            path = f"{self.PATH}{endpoint_path}".rstrip("/")
+
+        req_headers: dict[str, Optional[str]] = dict(http_headers or {})
+        req_headers["KnowledgatorAPI-Key"] = None
+
         request = self._make_request(
             method="GET",
             path=path,
             url_override=server_url,
-            headers=http_headers,
+            headers=req_headers,
             accept="application/json",
             timeout_ms=timeout_ms,
             user_agent=self.configs.user_agent,
@@ -1143,6 +1209,7 @@ class FinetuningAPI(BaseAPI):
         model_id: Optional[str] = None,
         dataset_id: Optional[str] = None,
         status: Optional[str] = None,
+        type: Optional[str] = None,
         server_url: Optional[str] = None,
         timeout_ms: Optional[int] = None,
         http_headers: Optional[Mapping[str, str]] = None,
@@ -1155,8 +1222,12 @@ class FinetuningAPI(BaseAPI):
             query_params["dataset_id"] = dataset_id
         if status is not None:
             query_params["status"] = status
+        if type is not None:
+            query_params["type"] = type
 
-        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_trainings}".rstrip("/")
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.list_trainings}"
+        if not path.endswith("/"):
+            path += "/"
         request = self._make_request(
             method="GET",
             path=path,

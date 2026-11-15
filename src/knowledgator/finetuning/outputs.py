@@ -25,6 +25,17 @@ class TrainingModel(BaseModel):
     )
     training_model: Optional[bool] = Field(default=None)
     training_adapter: Optional[bool] = Field(default=None)
+    short_description: Optional[str] = Field(default=None, description="Short summary of the model")
+    inference: Optional[str] = Field(default=None, description="Inference endpoint or service type")
+    fine_tuned: Optional[bool] = Field(default=None, description="Whether this is a fine-tuned model/adapter")
+    training: Optional[Dict[str, Any]] = Field(default=None, description="Training capability metadata")
+    parent_model: Optional[str] = Field(default=None, description="Base model ID if fine-tuned adapter")
+    architecture: Optional[str] = Field(default=None, description="Model architecture")
+    main_task: Optional[str] = Field(default=None, description="Primary task")
+    tasks: Optional[List[str]] = Field(default=None, description="Supported tasks")
+    modalities: Optional[List[str]] = Field(default=None, description="Supported modalities")
+    tags: Optional[List[str]] = Field(default=None, description="Model tags")
+    num_of_parameters: Optional[Any] = Field(default=None, description="Parameter count")
 
 
 class ListModelsResponse(BaseModel):
