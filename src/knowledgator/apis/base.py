@@ -83,11 +83,19 @@ class BaseAPI:
 
             self.configs.async_client_supplied = False
 
-    def _headers(self, extra: Mapping[str, str] | None) -> list[tuple[bytes, bytes, bytes]]:
+    def _headers(self, extra: Mapping[str, str | None] | None) -> list[tuple[bytes, bytes, bytes]]:
         if extra is None:
-            headers = self.base_headers
+            headers = dict(self.base_headers)
         else:
-            headers = {**self.base_headers, **remove_none_from_dict(extra)}
+            headers = dict(self.base_headers)
+            for k, v in extra.items():
+                if v is None:
+                    headers.pop(k, None)
+                    for existing_k in list(headers.keys()):
+                        if existing_k.lower() == k.lower():
+                            headers.pop(existing_k, None)
+                else:
+                    headers[k] = str(v)
         dedup_headers: dict[str, tuple[str, str]] = {}
         for k, v in headers.items():
             dedup_headers[k.lower()] = (k, str(v))
@@ -107,7 +115,7 @@ class BaseAPI:
         json_body: Optional[Any] = None,
         data_body: Optional[Any] = None,
         files: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[Mapping[str, Optional[str]]] = None,
         accept: str | None = "application/json",
         user_agent: str | None = None,
         timeout_ms: Optional[int] = None,
@@ -127,7 +135,7 @@ class BaseAPI:
         clean_path = re.sub(r"/{2,}", "/", raw_path.lstrip("/"))
         url = urllib.parse.urljoin(base_url, clean_path)
 
-        extra_headers: MutableMapping[str, str] = {}
+        extra_headers: MutableMapping[str, Optional[str]] = {}
         if headers:
             extra_headers.update(headers)
         if accept is not None:

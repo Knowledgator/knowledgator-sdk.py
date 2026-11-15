@@ -87,7 +87,7 @@ class HttpClient(BaseHttpClient):
         if params is not None:
             req_params = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
-            req_params = {}
+            req_params = None
         max_tries = retries if retries is not None else self._retry.max_tries
 
         req_data = data
@@ -189,7 +189,7 @@ class AsyncHttpClient(BaseHttpClient):
         if params is not None:
             req_params = remove_omit_from_dict(remove_none_from_dict(params), omit)
         else:
-            req_params = {}
+            req_params = None
         max_tries = retries if retries is not None else self._retry.max_tries
 
         req_data = data
