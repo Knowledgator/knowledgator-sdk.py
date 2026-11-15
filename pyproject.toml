@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "knowledgator"
-version = "1.0.1"
+version = "1.0.2"
 description = "Python client SDK for the Knowledgator API"
 authors = ["Knowledgator <info@knowledgator.com>"]
 license = "Apache-2.0"
