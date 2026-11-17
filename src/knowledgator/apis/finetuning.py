@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 from dataclasses import dataclass
 
 import httpx
@@ -42,6 +42,7 @@ class FinetuningEndpointsConfig(EndpointsConfig):
     # Training Monitoring
     list_events: str = "{training_id}/events/"
     get_metrics: str = "{training_id}/metrics/{metric}/"
+    get_evaluations: str = "{training_id}/evaluations/"
 
 
 class FinetuningAPI(BaseAPI):
@@ -875,6 +876,68 @@ class FinetuningAPI(BaseAPI):
                 request_id=response.headers.get("x-request-id"),
             ) from exc
 
+    def get_evaluations(
+        self,
+        training_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Get evaluation metrics for a training job.
+
+        Args:
+            training_id: Training job identifier (2-64 chars, alphanumeric with hyphens).
+            server_url: Optional server URL override.
+            timeout_ms: Optional timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Returns:
+            Dict containing evaluation metrics.
+
+        Raises:
+            BadRequest: If training_id is invalid.
+            TransportTimeout: If the request times out.
+            ConnectionFailure: If there's a transport error.
+            ServerError: If the server returns an error.
+        """
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_evaluations}".format(training_id=training_id)
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug("FinetuningAPI.get_evaluations: %s %s", request.method, request.url)
+
+        try:
+            response = self.send(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug("FinetuningAPI.get_evaluations: %s ← %s", response.status_code, request.url)
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
     # ============================================================================
     # Model Management - Asynchronous Methods
     # ============================================================================
@@ -1521,3 +1584,64 @@ class FinetuningAPI(BaseAPI):
                 payload={"raw": response.text},
                 request_id=response.headers.get("x-request-id"),
             ) from exc
+
+    async def get_evaluations_async(
+        self,
+        training_id: str,
+        server_url: Optional[str] = None,
+        timeout_ms: Optional[int] = None,
+        http_headers: Optional[Mapping[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Async version of get_evaluations().
+
+        Args:
+            training_id: Training job identifier (2-64 chars, alphanumeric with hyphens).
+            server_url: Optional server URL override.
+            timeout_ms: Optional timeout in milliseconds.
+            http_headers: Optional additional HTTP headers.
+
+        Returns:
+            Dict containing evaluation metrics.
+        """
+        path = f"{self.PATH}{self.ENDPOINTS_CONFIG.get_evaluations}".format(training_id=training_id)
+        request = self._make_request(
+            method="GET",
+            path=path,
+            url_override=server_url,
+            headers=http_headers,
+            accept="application/json",
+            timeout_ms=timeout_ms,
+            user_agent=self.configs.user_agent,
+        )
+
+        if self._log:
+            self._log.debug("FinetuningAPI.get_evaluations_async: %s %s", request.method, request.url)
+
+        try:
+            response = await self.send_async(request)
+        except httpx.TimeoutException as exc:
+            raise TransportTimeout("Request timed-out") from exc
+        except httpx.RequestError as exc:
+            raise ConnectionFailure("Transport error") from exc
+
+        if self._log:
+            self._log.debug(
+                "FinetuningAPI.get_evaluations_async: %s ← %s",
+                response.status_code,
+                request.url,
+            )
+
+        if not 200 <= response.status_code < 300:
+            raise from_http_response(response)
+
+        try:
+            return response.json()
+        except Exception as exc:
+            raise ServerError(
+                "Malformed or unexpected response",
+                status_code=response.status_code,
+                payload={"raw": response.text},
+                request_id=response.headers.get("x-request-id"),
+            ) from exc
+
