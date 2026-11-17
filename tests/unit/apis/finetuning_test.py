@@ -398,3 +398,33 @@ class TestFinetuningAPIMockRequests:
         assert "/trainings" in str(kwargs["url"])
         assert "type=extract-it" in str(kwargs["url"])
         assert "status=completed" in str(kwargs["url"])
+
+    def test_get_evaluations(self, api):
+        """Test get_evaluations calls /trainings/{id}/evaluations/."""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"f1": 0.95, "accuracy": 0.98}
+        api.configs.client.request.return_value = mock_response
+
+        res = api.get_evaluations("tr-eval-123")
+        assert res == {"f1": 0.95, "accuracy": 0.98}
+        _args, kwargs = api.configs.client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/trainings/tr-eval-123/evaluations/"
+
+    @pytest.mark.asyncio
+    async def test_get_evaluations_async(self, api):
+        """Test get_evaluations_async calls /trainings/{id}/evaluations/."""
+        from unittest.mock import AsyncMock
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"loss": 0.12}
+        api.configs.async_client.request = AsyncMock(return_value=mock_response)
+
+        res = await api.get_evaluations_async("tr-eval-456")
+        assert res == {"loss": 0.12}
+        _args, kwargs = api.configs.async_client.request.call_args
+        assert kwargs["method"] == "GET"
+        assert kwargs["url"].path == "/trainings/tr-eval-456/evaluations/"
+
