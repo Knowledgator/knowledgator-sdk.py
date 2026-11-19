@@ -36,7 +36,7 @@ def test_knowledgator_init_defaults(mock_clients):
     kg = Knowledgator()
 
     assert kg.configs.server == "main"
-    assert kg.configs.server_config.servers["main"] == "api.knowledgator.com"
+    assert kg.configs.server_config.servers["main"] == "api.platform.knowledgator.com"
     assert kg.configs.client is not None
     assert kg.configs.async_client is not None
     assert kg.configs.client_supplied is False
@@ -277,7 +277,7 @@ def test_manual_servers_config_without_headers(mock_clients):
 
     # This is what happens in the example - no headers are set!
     configs = SDKConfigs()
-    configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+    configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
     api = ExtractAPI(configs)
 
     # Verify that there are NO authentication headers
@@ -294,7 +294,7 @@ def test_manual_servers_config_with_headers(mock_clients):
     # Correct way to manually set up with headers
     configs = SDKConfigs()
     configs.server_config = ServersConfigs(
-        servers={"main": "https://api.knowledgator.com"},
+        servers={"main": "https://api.platform.knowledgator.com"},
         base_headers={"main": {"KnowledgatorAPI-Key": "manual-api-key"}},
     )
     api = ExtractAPI(configs)

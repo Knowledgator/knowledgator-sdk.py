@@ -23,7 +23,7 @@ class TestDataAPIMockRequests:
     def api(self):
         """Create DatasetsAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -58,7 +58,7 @@ class TestDataAPIMockRequests:
         assert api.configs.client.request.called
         assert (
             str(api.configs.client.request.call_args.kwargs["url"])
-            == "https://api.knowledgator.com/data?offset=0&limit=100"
+            == "https://api.platform.knowledgator.com/data?offset=0&limit=100"
         )
 
         # Verify response
@@ -132,7 +132,7 @@ class TestDataAPIMockRequests:
 
         # Verify request (multipart form-data)
         call_kwargs = api.configs.client.request.call_args.kwargs
-        assert str(call_kwargs["url"]) == "https://api.knowledgator.com/data"
+        assert str(call_kwargs["url"]) == "https://api.platform.knowledgator.com/data"
         assert "data" in call_kwargs
         assert call_kwargs["data"]["name"] == "new-data"
         assert call_kwargs["data"]["type"] == "ner"
@@ -218,7 +218,7 @@ class TestDataAPIAsyncMockRequests:
     @pytest.fixture
     def api(self):
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"

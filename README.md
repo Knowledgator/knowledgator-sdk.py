@@ -61,7 +61,7 @@ pip install -e .
 
 ### API Key Setup
 
-Before using the SDK, obtain a Knowledgator API key from [api.knowledgator.com](https://api.knowledgator.com/account/api-keys).
+Before using the SDK, obtain a Knowledgator API key from [platform.knowledgator.com](https://platform.knowledgator.com/account/api-keys).
 
 Set your API key as an environment variable:
 

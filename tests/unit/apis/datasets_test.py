@@ -27,7 +27,7 @@ class TestDatasetsAPIMockRequests:
     def api(self):
         """Create DatasetsAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -347,7 +347,7 @@ class TestDatasetsAPIAsyncMockRequests:
     def api(self):
         """Create DatasetsAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"

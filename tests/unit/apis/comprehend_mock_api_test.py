@@ -31,7 +31,7 @@ class TestComprehendAPIMockRequests:
     def api(self):
         """Create ComprehendAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -434,7 +434,7 @@ class TestComprehendAPIAsyncMockRequests:
     def api(self):
         """Create ComprehendAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"

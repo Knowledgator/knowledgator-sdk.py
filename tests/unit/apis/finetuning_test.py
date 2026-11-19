@@ -18,7 +18,7 @@ class TestFinetuningAPIMockRequests:
     def api(self):
         """Create FinetuningAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -256,7 +256,7 @@ class TestFinetuningAPIMockRequests:
         _args, kwargs = api.configs.client.request.call_args
         assert kwargs["method"] == "GET"
         assert kwargs["url"].path == "/models/"
-        assert str(kwargs["url"]) == "https://api.knowledgator.com/models/?offset=0&limit=20&object_type=model&trainable=model&inference=open-models&type=GLiClass&name=gliclass"
+        assert str(kwargs["url"]) == "https://api.platform.knowledgator.com/models/?offset=0&limit=20&object_type=model&trainable=model&inference=open-models&type=GLiClass&name=gliclass"
 
     @pytest.mark.asyncio
     async def test_list_models_async_with_filters(self, api):
@@ -300,7 +300,7 @@ class TestFinetuningAPIMockRequests:
         _args, kwargs = api.configs.async_client.request.call_args
         assert kwargs["method"] == "GET"
         assert kwargs["url"].path == "/models/"
-        assert str(kwargs["url"]) == "https://api.knowledgator.com/models/?offset=0&limit=10&object_type=adapter&trainable=adapter&inference=comprehend-it"
+        assert str(kwargs["url"]) == "https://api.platform.knowledgator.com/models/?offset=0&limit=10&object_type=adapter&trainable=adapter&inference=comprehend-it"
 
     def test_get_model_endpoint(self, api):
         """Test get_model calls /models/{id} as public endpoint with no auth header."""

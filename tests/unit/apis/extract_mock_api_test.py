@@ -27,7 +27,7 @@ class TestExtractGeneralAPIMockRequests:
     def api(self):
         """Create ExtractAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -306,7 +306,7 @@ class TestExtractRelationAPIMockRequests:
     def api(self):
         """Create ExtractAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -456,7 +456,7 @@ class TestExtractSummaryAPIMockRequests:
     def api(self):
         """Create ExtractAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
@@ -566,7 +566,7 @@ class TestExtractAPIAsyncMockRequests:
     def api(self):
         """Create ExtractAPI instance with mock configuration."""
         configs = SDKConfigs()
-        configs.server_config = ServersConfigs(servers={"main": "https://api.knowledgator.com"})
+        configs.server_config = ServersConfigs(servers={"main": "https://api.platform.knowledgator.com"})
         configs.client = MagicMock()
         configs.async_client = MagicMock()
         configs.user_agent = "knowledgator-sdk/1.0"
