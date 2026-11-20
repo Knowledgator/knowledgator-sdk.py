@@ -1,7 +1,27 @@
-# Knowledgator Python SDK
+<h1>Knowledgator Python SDK</h1>
 
-[![version badge](https://img.shields.io/pypi/v/knowledgator)](https://pypi.org/project/knowledgator/)
-![license badge](https://img.shields.io/github/license/knowledgator-ai/knowledgator-python)
+<div align="center">
+
+<a href="https://platform.knowledgator.com/">
+  <img src="https://raw.githubusercontent.com/Knowledgator/knowledgator-sdk.py/main/assets/header.png" alt="Knowledgator Python SDK — turn text into structured knowledge" width="100%">
+</a>
+
+<p>
+  <a href="https://docs.knowledgator.com/docs/sdks/python/"><b>Documentation</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://platform.knowledgator.com/"><b>Platform</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://pypi.org/project/knowledgator/"><b>PyPI</b></a>
+</p>
+
+<p>
+  <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/v/knowledgator?color=4b6b3a&label=pypi" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/pyversions/knowledgator?color=4b6b3a" alt="Python versions"></a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache--2.0-4b6b3a" alt="License: Apache-2.0"></a>
+  <a href="https://docs.knowledgator.com/docs/sdks/python/"><img src="https://img.shields.io/badge/docs-knowledgator-4b6b3a" alt="Docs"></a>
+</p>
+
+</div>
 
 The Knowledgator Python SDK provides access to the Knowledgator APIs for zero-shot classification and information extraction tasks. It supports both synchronous and asynchronous operations, with variants for standard API access and RapidAPI integration.
 
@@ -25,7 +45,7 @@ The Knowledgator Python SDK provides access to the Knowledgator APIs for zero-sh
 
 ## Documentation
 
-Knowledgator API reference and guides are available [here](https://docs.knowledgator.com/). For detailed endpoint specifications, refer to the API documentation.
+Knowledgator API reference and guides are available [here](https://docs.knowledgator.com/docs/sdks/python/). For detailed endpoint specifications, refer to the API documentation.
 
 ## Quick Installation
 
