@@ -7,18 +7,12 @@
 </a>
 
 <p>
-  <a href="https://docs.knowledgator.com/docs/sdks/python/"><b>Documentation</b></a>
-  &nbsp;·&nbsp;
-  <a href="https://platform.knowledgator.com/"><b>Platform</b></a>
-  &nbsp;·&nbsp;
-  <a href="https://pypi.org/project/knowledgator/"><b>PyPI</b></a>
-</p>
-
-<p>
-  <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/v/knowledgator?color=4b6b3a&label=pypi" alt="PyPI version"></a>
+  <a href="https://docs.knowledgator.com/docs/sdks/python/"><img src="https://img.shields.io/badge/Documentation-b5a642?logo=readthedocs&logoColor=white" alt="Documentation"></a>
+  <a href="https://platform.knowledgator.com/"><img src="https://img.shields.io/badge/Platform-b5a642?logo=googlechrome&logoColor=white" alt="Platform"></a>
+  <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/badge/PyPI-b5a642?logo=pypi&logoColor=white" alt="PyPI"></a>
+  <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/v/knowledgator?color=4b6b3a&label=version" alt="PyPI version"></a>
   <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/pyversions/knowledgator?color=4b6b3a" alt="Python versions"></a>
   <a href="https://github.com/Knowledgator/knowledgator-sdk.py/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-4b6b3a" alt="License: Apache-2.0"></a>
-  <a href="https://docs.knowledgator.com/docs/sdks/python/"><img src="https://img.shields.io/badge/docs-knowledgator-4b6b3a" alt="Docs"></a>
 </p>
 
 </div>
