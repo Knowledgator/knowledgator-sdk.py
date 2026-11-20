@@ -3,7 +3,7 @@
 <div align="center">
 
 <a href="https://platform.knowledgator.com/">
-  <img src="https://raw.githubusercontent.com/Knowledgator/knowledgator-sdk.py/main/assets/header.png" alt="Knowledgator Python SDK — turn text into structured knowledge" width="100%">
+  <img src="assets/header.png" alt="Knowledgator Python SDK — turn text into structured knowledge" width="100%">
 </a>
 
 <p>
