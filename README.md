@@ -17,7 +17,7 @@
 <p>
   <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/v/knowledgator?color=4b6b3a&label=pypi" alt="PyPI version"></a>
   <a href="https://pypi.org/project/knowledgator/"><img src="https://img.shields.io/pypi/pyversions/knowledgator?color=4b6b3a" alt="Python versions"></a>
-  <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache--2.0-4b6b3a" alt="License: Apache-2.0"></a>
+  <a href="https://github.com/Knowledgator/knowledgator-sdk.py/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-4b6b3a" alt="License: Apache-2.0"></a>
   <a href="https://docs.knowledgator.com/docs/sdks/python/"><img src="https://img.shields.io/badge/docs-knowledgator-4b6b3a" alt="Docs"></a>
 </p>
 
@@ -715,3 +715,7 @@ Feel free to contribute and open issues or PRs.
 1. Fork → feature branch → PR.
 2. For docs tweaks (like this README) – patch away, no generator sync needed.
 3. For runtime changes – supply tests; we’ll migrate logic upstream.
+
+## License
+
+This project is licensed under the [Apache License 2.0](LICENSE).
